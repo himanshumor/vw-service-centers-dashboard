@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VW India Service Centers Dashboard</title>
+
+<!-- Leaflet CSS -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #map {
+    flex: 3;
+    height: 100%;
+  }
+
+  #infoPanel {
+    flex: 1;
+    background-color: #f7f7f7;
+    padding: 20px;
+    border-left: 2px solid #ddd;
+    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+  }
+
+  #infoPanel h2 {
+    color: #004d99;
+  }
+
+  #infoPanel ul {
+    padding-left: 20px;
+  }
+
+  .stat-box {
+    background-color: #e6f2ff;
+    border-left: 4px solid #004d99;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+  }
+
+  #stateSelect {
+    width: 90%;
+    padding: 6px;
+    margin-bottom: 10px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 10px;
+  }
+
+  table th, table td {
+    padding: 6px;
+    border: 1px solid #ccc;
+  }
+
+  table th {
+    background-color: #004d99;
+    color: white;
+  }
+
+  table tr:nth-child(even) {
+    background-color: #e6f2ff;
+  }
+
+  table tr:nth-child(odd) {
+    background-color: #ffffff;
+  }
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+<div id="infoPanel">
+  <h2>VW India Service Centers</h2>
+  <select id="stateSelect">
+    <option value="all">Select a State</option>
+  </select>
+  <div id="stateInfo">
+    <p><i>Click a state on the map to see details.</i></p>
+  </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- GeoJSON for India States -->
+<script src="https://cdn.jsdelivr.net/npm/geojson-india@1.0.0/india-states.geojson.js"></script>
+
+<script>
+// --- VW Service Centers (Expanded City Coverage) ---
+const vwCenters = [
+  { state: "Andhra Pradesh", city: "Nellore", center: "Volkswagen NELLORE", lat: 14.44, lon: 79.99 },
+  { state: "Andhra Pradesh", city: "Rajahmundry", center: "Volkswagen Rajahmundry", lat: 16.99, lon: 81.80 },
+  { state: "Andhra Pradesh", city: "Tirupati", center: "Volkswagen Tirupati", lat: 13.63, lon: 79.42 },
+  { state: "Andhra Pradesh", city: "Vijayawada", center: "Volkswagen Vijayawada", lat: 16.51, lon: 80.65 },
+  { state: "Andhra Pradesh", city: "Visakhapatnam", center: "Volkswagen Visakhapatnam", lat: 17.69, lon: 83.22 },
+
+  { state: "Assam", city: "Guwahati", center: "Volkswagen Guwahati", lat: 26.14, lon: 91.74 },
+
+  { state: "Bihar", city: "Patna", center: "Volkswagen Patna", lat: 25.59, lon: 85.14 },
+
+  { state: "Chandigarh", city: "Chandigarh", center: "Volkswagen Chandigarh", lat: 30.73, lon: 76.78 },
+
+  { state: "Chhattisgarh", city: "Bilaspur", center: "Volkswagen Bilaspur", lat: 22.08, lon: 82.14 },
+  { state: "Chhattisgarh", city: "Raipur", center: "Volkswagen Raipur", lat: 21.25, lon: 81.63 },
+
+  { state: "Delhi", city: "Delhi", center: "Volkswagen Capital", lat: 28.61, lon: 77.21 },
+  { state: "Delhi", city: "Delhi", center: "Volkswagen Delhi West", lat: 28.61, lon: 77.21 },
+  { state: "Delhi", city: "Delhi", center: "Volkswagen NCR East", lat: 28.61, lon: 77.21 },
+  { state: "Delhi", city: "Delhi", center: "Volkswagen Rajdhani", lat: 28.61, lon: 77.21 },
+  { state: "Delhi", city: "Delhi", center: "Volkswagen Safdarjung", lat: 28.61, lon: 77.21 },
+
+  { state: "Goa", city: "Goa", center: "Volkswagen Goa", lat: 15.30, lon: 74.12 },
+
+  { state: "Gujarat", city: "Ahmedabad", center: "Volkswagen Ahmedabad, Narol", lat: 23.03, lon: 72.57 },
+  { state: "Gujarat", city: "Ahmedabad", center: "Volkswagen Ahmedabad, S. G. Highway", lat: 23.03, lon: 72.57 },
+  { state: "Gujarat", city: "Mehsana", center: "Volkswagen Mehsana", lat: 23.60, lon: 72.37 },
+  { state: "Gujarat", city: "Navsari", center: "Volkswagen Navsari", lat: 20.95, lon: 72.95 },
+  { state: "Gujarat", city: "Rajkot", center: "Volkswagen Rajkot", lat: 22.30, lon: 70.80 },
+  { state: "Gujarat", city: "Surat", center: "Volkswagen Surat", lat: 21.17, lon: 72.83 },
+  { state: "Gujarat", city: "Vadodara", center: "Volkswagen Vadodara", lat: 22.31, lon: 73.18 },
+  { state: "Gujarat", city: "Vapi", center: "Volkswagen Vapi", lat: 20.39, lon: 72.90 },
+
+  { state: "Haryana", city: "Ambala", center: "Volkswagen Ambala", lat: 30.38, lon: 76.78 },
+  { state: "Haryana", city: "Gurugram", center: "Volkswagen Gurugram", lat: 28.46, lon: 77.03 },
+  { state: "Haryana", city: "Gurugram", center: "Volkswagen Gurgaon", lat: 28.46, lon: 77.03 }, // raw has both
+  { state: "Haryana", city: "Hisar", center: "Volkswagen Hisar", lat: 29.15, lon: 75.73 },
+  { state: "Haryana", city: "Karnal", center: "Volkswagen Karnal", lat: 29.69, lon: 76.99 },
+  { state: "Haryana", city: "Panipat", center: "Volkswagen Panipat", lat: 29.39, lon: 76.96 },
+  { state: "Haryana", city: "Rohtak", center: "Volkswagen Rohtak", lat: 28.89, lon: 76.61 },
+  { state: "Haryana", city: "Yamunanagar", center: "Volkswagen Yamunanagar", lat: 30.13, lon: 77.27 },
+
+  { state: "Himachal Pradesh", city: "Mandi", center: "Volkswagen Mandi", lat: 31.51, lon: 76.86 },
+
+  { state: "Jammu & Kashmir", city: "Jammu", center: "Volkswagen Jammu", lat: 32.73, lon: 74.86 },
+  { state: "Jammu & Kashmir", city: "Srinagar", center: "Volkswagen Srinagar", lat: 34.08, lon: 74.80 },
+
+  { state: "Jharkhand", city: "Jamshedpur", center: "Volkswagen Jamshedpur", lat: 22.80, lon: 86.20 },
+  { state: "Jharkhand", city: "Ranchi", center: "Volkswagen Ranchi", lat: 23.34, lon: 85.31 },
+
+  { state: "Karnataka", city: "Bangalore", center: "Volkswagen Bangalore", lat: 12.97, lon: 77.59 },
+  { state: "Karnataka", city: "Bangalore", center: "Volkswagen Bangalore North", lat: 12.97, lon: 77.59 },
+  { state: "Karnataka", city: "Bangalore", center: "Volkswagen Bangalore South", lat: 12.97, lon: 77.59 },
+  { state: "Karnataka", city: "Bangalore", center: "Volkswagen Old Airport Road", lat: 12.96, lon: 77.64 },
+  { state: "Karnataka", city: "Bangalore", center: "Volkswagen Palace Cross - Hesargatta", lat: 13.05, lon: 77.50 },
+  { state: "Karnataka", city: "Bangalore", center: "Volkswagen Palace Cross - Rajajinager", lat: 13.01, lon: 77.60 },
+  { state: "Karnataka", city: "Belgaum", center: "Volkswagen Belgaum", lat: 15.85, lon: 74.50 },
+  { state: "Karnataka", city: "Davanagere", center: "Volkswagen Davanagere", lat: 14.46, lon: 75.92 },
+  { state: "Karnataka", city: "Hassan", center: "Volkswagen Hassan", lat: 13.01, lon: 76.10 },
+  { state: "Karnataka", city: "Hubli", center: "Volkswagen Hubli", lat: 15.36, lon: 75.12 },
+  { state: "Karnataka", city: "Mangalore", center: "Volkswagen Mangalore", lat: 12.91, lon: 74.86 },
+  { state: "Karnataka", city: "Mysore", center: "Volkswagen Mysore", lat: 12.30, lon: 76.64 },
+  { state: "Karnataka", city: "Mysore", center: "Volkswagen Mysore Road", lat: 12.30, lon: 76.64 },
+  { state: "Karnataka", city: "Sarjapur", center: "Volkswagen Sarjapur Road", lat: 12.91, lon: 77.68 },
+  { state: "Karnataka", city: "Shivamogga", center: "Volkswagen Shivamogga", lat: 13.93, lon: 75.57 },
+  { state: "Karnataka", city: "Udupi", center: "Volkswagen Udupi", lat: 13.34, lon: 74.74 },
+  { state: "Karnataka", city: "Vijayapura", center: "Volkswagen Vijayapura", lat: 16.83, lon: 75.71 },
+  { state: "Karnataka", city: "Whitefield", center: "Volkswagen Whitefield", lat: 12.97, lon: 77.71 },
+
+  { state: "Kerala", city: "Alappuzha", center: "Volkswagen Alappuzha", lat: 9.50, lon: 76.34 },
+  { state: "Kerala", city: "Calicut", center: "Volkswagen Calicut", lat: 11.26, lon: 75.78 },
+  { state: "Kerala", city: "Cheranallore", center: "Volkswagen Cheranallore", lat: 10.04, lon: 76.32 },
+  { state: "Kerala", city: "Cochin", center: "Volkswagen Cochin", lat: 9.93, lon: 76.27 },
+  { state: "Kerala", city: "Kollam", center: "Volkswagen Kollam", lat: 8.89, lon: 76.61 },
+  { state: "Kerala", city: "Kottayam", center: "Volkswagen Kottayam", lat: 9.59, lon: 76.52 },
+  { state: "Kerala", city: "Kannur", center: "Volkswagen Kannur", lat: 11.87, lon: 75.37 },
+  { state: "Kerala", city: "Kodungallur", center: "Volkswagen Kodungallur", lat: 10.21, lon: 76.20 },
+  { state: "Kerala", city: "Malappuram", center: "Volkswagen Mallapuram", lat: 10.96, lon: 76.15 },
+  { state: "Kerala", city: "Muvatupuzha", center: "Volkswagen Muvatupuzha", lat: 9.96, lon: 76.53 },
+  { state: "Kerala", city: "Perumbavoor", center: "Volkswagen Perumbavoor", lat: 10.11, lon: 76.41 },
+  { state: "Kerala", city: "Thiruvalla", center: "Volkswagen Thiruvalla", lat: 9.39, lon: 76.59 },
+  { state: "Kerala", city: "Thiruvananthapuram", center: "Volkswagen Thiruvananthapuram", lat: 8.52, lon: 76.94 },
+  { state: "Kerala", city: "Thrissur", center: "Volkswagen Thrissur", lat: 10.53, lon: 76.21 },
+
+  { state: "Madhya Pradesh", city: "Bhopal", center: "Volkswagen Bhopal", lat: 23.26, lon: 77.41 },
+  { state: "Madhya Pradesh", city: "Gwalior", center: "Volkswagen Gwalior", lat: 26.22, lon: 78.18 },
+  { state: "Madhya Pradesh", city: "Indore", center: "Volkswagen Indore", lat: 22.72, lon: 75.86 },
+  { state: "Madhya Pradesh", city: "Jabalpur", center: "Volkswagen Jabalpur", lat: 23.18, lon: 79.99 },
+
+  { state: "Maharashtra", city: "Ahmednagar", center: "Volkswagen Ahmednagar", lat: 19.09, lon: 74.75 },
+  { state: "Maharashtra", city: "Dhule", center: "Volkswagen Dhule", lat: 20.90, lon: 74.77 },
+  { state: "Maharashtra", city: "Kolhapur", center: "Volkswagen Kolhapur", lat: 16.70, lon: 74.24 },
+  { state: "Maharashtra", city: "Mumbai", center: "Volkswagen Downtown Mumbai", lat: 19.08, lon: 72.88 },
+  { state: "Maharashtra", city: "Mumbai", center: "Volkswagen Mumbai East", lat: 19.08, lon: 72.88 },
+  { state: "Maharashtra", city: "Mumbai", center: "Volkswagen Mumbai North", lat: 19.08, lon: 72.88 },
+  { state: "Maharashtra", city: "Mumbai", center: "Volkswagen Mumbai West", lat: 19.08, lon: 72.88 },
+  { state: "Maharashtra", city: "Navi Mumbai", center: "Volkswagen Navi Mumbai", lat: 19.03, lon: 73.03 },
+  { state: "Maharashtra", city: "Nagpur", center: "Volkswagen Nagpur", lat: 21.15, lon: 79.09 },
+  { state: "Maharashtra", city: "Nashik", center: "Volkswagen Nashik", lat: 20.00, lon: 73.79 },
+  { state: "Maharashtra", city: "Pimpri Chinchwad", center: "Volkswagen Pimpri Chinchwad", lat: 18.63, lon: 73.80 },
+  { state: "Maharashtra", city: "Pune", center: "Volkswagen Pune", lat: 18.52, lon: 73.86 },
+  { state: "Maharashtra", city: "Sambhajinagar", center: "Volkswagen Chhatrapati Sambhajinagar", lat: 19.86, lon: 75.34 },
+  { state: "Maharashtra", city: "Sangli", center: "Volkswagen Sangli", lat: 16.86, lon: 74.56 },
+  { state: "Maharashtra", city: "Satara", center: "Volkswagen Satara", lat: 17.69, lon: 74.00 },
+  { state: "Maharashtra", city: "Solapur", center: "Volkswagen Solapur", lat: 17.66, lon: 75.91 },
+  { state: "Maharashtra", city: "Thane", center: "Volkswagen Thane", lat: 19.22, lon: 72.98 },
+
+  { state: "Odisha", city: "Bhubaneswar", center: "Volkswagen Bhubaneswar", lat: 20.30, lon: 85.82 },
+  { state: "Odisha", city: "Sambalpur", center: "Volkswagen Sambalpur", lat: 21.47, lon: 83.98 },
+
+  { state: "Puducherry", city: "Pondicherry", center: "Volkswagen Pondicherry", lat: 11.94, lon: 79.81 },
+
+  { state: "Punjab", city: "Amritsar", center: "Volkswagen Amritsar", lat: 31.63, lon: 74.87 },
+  { state: "Punjab", city: "Bhatinda", center: "Volkswagen Bhatinda", lat: 30.21, lon: 74.95 },
+  { state: "Punjab", city: "Hoshiarpur", center: "Volkswagen Hoshiarpur", lat: 31.53, lon: 75.91 },
+  { state: "Punjab", city: "Jalandhar", center: "Volkswagen Jalandhar", lat: 31.33, lon: 75.58 },
+  { state: "Punjab", city: "Ludhiana", center: "Volkswagen Ludhiana", lat: 30.91, lon: 75.85 },
+  { state: "Punjab", city: "Patiala", center: "Volkswagen Patiala", lat: 30.34, lon: 76.39 },
+
+  { state: "Rajasthan", city: "Jaipur", center: "Volkswagen Jaipur", lat: 26.91, lon: 75.79 },
+  { state: "Rajasthan", city: "Jaipur", center: "Volkswagen Jaipur North", lat: 26.91, lon: 75.79 },
+  { state: "Rajasthan", city: "Jodhpur", center: "Volkswagen Jodhpur", lat: 26.24, lon: 73.02 },
+  { state: "Rajasthan", city: "Kota", center: "Volkswagen Kota", lat: 25.21, lon: 75.86 },
+  { state: "Rajasthan", city: "Udaipur", center: "Volkswagen Udaipur", lat: 24.59, lon: 73.71 },
+
+  { state: "Tamil Nadu", city: "Arcot", center: "Volkswagen Arcot Road", lat: 12.92, lon: 79.32 },
+  { state: "Tamil Nadu", city: "Avinashi", center: "Volkswagen Avinashi Road", lat: 11.20, lon: 77.30 },
+  { state: "Tamil Nadu", city: "Chennai", center: "Volkswagen Chennai", lat: 13.08, lon: 80.27 },
+  { state: "Tamil Nadu", city: "Chennai", center: "Volkswagen Madras", lat: 13.08, lon: 80.27 },
+  { state: "Tamil Nadu", city: "Chennai", center: "Volkswagen Madras South", lat: 13.08, lon: 80.27 },
+  { state: "Tamil Nadu", city: "Chennai", center: "Volkswagen Madras Thirumudivakkam", lat: 13.00, lon: 80.00 },
+  { state: "Tamil Nadu", city: "Coimbatore", center: "Volkswagen Coimbatore", lat: 11.02, lon: 76.96 },
+  { state: "Tamil Nadu", city: "Erode", center: "Volkswagen Erode", lat: 11.34, lon: 77.72 },
+  { state: "Tamil Nadu", city: "Madurai", center: "Volkswagen Madurai", lat: 9.93, lon: 78.12 },
+  { state: "Tamil Nadu", city: "Pollachi", center: "Volkswagen Pollachi", lat: 10.52, lon: 77.00 },
+  { state: "Tamil Nadu", city: "Salem", center: "Volkswagen Salem", lat: 11.66, lon: 78.15 },
+  { state: "Tamil Nadu", city: "Thanjavur", center: "Volkswagen Thanjavur", lat: 10.79, lon: 79.14 },
+  { state: "Tamil Nadu", city: "Tiruchirappalli", center: "Volkswagen Tiruchirappalli", lat: 10.79, lon: 78.70 },
+  { state: "Tamil Nadu", city: "Tirunelveli", center: "Volkswagen Tirunelveli", lat: 8.73, lon: 77.71 },
+  { state: "Tamil Nadu", city: "Tirupur", center: "Volkswagen Tirupur", lat: 11.11, lon: 77.34 },
+  { state: "Tamil Nadu", city: "Vellore", center: "Volkswagen Vellore", lat: 12.92, lon: 79.13 },
+
+  { state: "Telangana", city: "Hyderabad", center: "Volkswagen Hyderabad", lat: 17.39, lon: 78.49 },
+  { state: "Telangana", city: "Hyderabad", center: "Volkswagen Hyderabad(Kukatpally)", lat: 17.39, lon: 78.49 },
+  { state: "Telangana", city: "Hyderabad", center: "Volkswagen Mehdipatnam", lat: 17.37, lon: 78.46 },
+  { state: "Telangana", city: "Karimnagar", center: "Volkswagen Karimnagar", lat: 18.44, lon: 79.13 },
+  { state: "Telangana", city: "Secundrabad", center: "Volkswagen Secundrabad", lat: 17.44, lon: 78.50 },
+  { state: "Telangana", city: "Hyderabad", center: "Volkswagen Deccan", lat: 17.38, lon: 78.46 },
+
+  { state: "Uttar Pradesh", city: "Agra", center: "Volkswagen Agra", lat: 27.18, lon: 78.01 },
+  { state: "Uttar Pradesh", city: "Prayagraj", center: "Volkswagen Prayagraj", lat: 25.44, lon: 81.85 },
+  { state: "Uttar Pradesh", city: "Bareilly", center: "Volkswagen Bareilly", lat: 28.37, lon: 79.43 },
+  { state: "Uttar Pradesh", city: "Kanpur", center: "Volkswagen Kanpur", lat: 26.45, lon: 80.33 },
+  { state: "Uttar Pradesh", city: "Varanasi", center: "Volkswagen Kashi", lat: 25.32, lon: 82.97 },
+  { state: "Uttar Pradesh", city: "Lucknow", center: "Volkswagen Lucknow", lat: 26.85, lon: 80.95 },
+  { state: "Uttar Pradesh", city: "Moradabad", center: "Volkswagen Moradabad", lat: 28.84, lon: 78.77 },
+  { state: "Uttar Pradesh", city: "Noida", center: "Volkswagen Noida", lat: 28.54, lon: 77.39 },
+
+  { state: "Uttarakhand", city: "Dehradun", center: "Volkswagen Dehradun", lat: 30.32, lon: 78.03 },
+  { state: "Uttarakhand", city: "Haldwani", center: "Volkswagen Haldwani", lat: 29.22, lon: 79.51 },
+
+  { state: "West Bengal", city: "Kolkata", center: "Volkswagen Kolkata Central", lat: 22.57, lon: 88.36 },
+  { state: "West Bengal", city: "Kolkata", center: "Volkswagen Kolkata South", lat: 22.57, lon: 88.36 },
+];
+
+// --- Initialize Map ---
+const map = L.map('map').setView([22.9734, 78.6569], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+let stateLayer;
+let markers = [];
+
+// --- Add Dropdown States ---
+const stateSelect = document.getElementById('stateSelect');
+const uniqueStates = [...new Set(vwCenters.map(c => c.state))];
+uniqueStates.forEach(s => {
+  const opt = document.createElement('option');
+  opt.value = s;
+  opt.textContent = s;
+  stateSelect.appendChild(opt);
+});
+
+// --- Add India State Boundaries ---
+fetch("https://raw.githubusercontent.com/geohacker/india/master/state/india_telengana.geojson")
+  .then(res => res.json())
+  .then(geojsonData => {
+    stateLayer = L.geoJson(geojsonData, {
+      style: {
+        color: "#555",
+        weight: 1,
+        fillColor: "#f2f2f2",
+        fillOpacity: 0.5
+      },
+      onEachFeature: function (feature, layer) {
+        const stateName = feature.properties.NAME_1;
+        layer.on({
+          click: () => onStateClick(stateName, layer)
+        });
+      }
+    }).addTo(map);
+  });
+
+// --- Function: Handle State Click ---
+function onStateClick(stateName, layer) {
+  stateLayer.eachLayer(l => stateLayer.resetStyle(l));
+  layer.setStyle({ color: "#004d99", weight: 3, fillColor: "#cce0ff", fillOpacity: 0.7 });
+  const centers = vwCenters.filter(c => c.state === stateName);
+  showMarkers(centers);
+  map.fitBounds(layer.getBounds());
+  updateInfoPanel(stateName, centers);
+}
+
+// --- Show Service Center Markers ---
+function showMarkers(centers) {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  centers.forEach(c => {
+    const marker = L.marker([c.lat, c.lon])
+      .bindPopup(`<b>${c.center}</b><br>${c.city}`)
+      .addTo(map);
+    markers.push(marker);
+  });
+}
+
+// --- Update Info Panel (Colorful Table Format) ---
+function updateInfoPanel(stateName, centers) {
+  const infoDiv = document.getElementById("stateInfo");
+  if (centers.length === 0) {
+    infoDiv.innerHTML = `<h3>${stateName}</h3><p>No VW service centers available.</p>`;
+    return;
+  }
+
+  const cities = [...new Set(centers.map(c => c.city))];
+
+  infoDiv.innerHTML = `
+    <h3>${stateName}</h3>
+    <div class="stat-box"><b>Total Centers:</b> ${centers.length}</div>
+    <div class="stat-box"><b>Cities Covered:</b> ${cities.length}</div>
+    <h4>Service Centers</h4>
+    <table>
+      <thead>
+        <tr><th>City</th><th>Center Name</th></tr>
+      </thead>
+      <tbody>
+        ${centers.map(c => `
+          <tr>
+            <td>${c.city}</td>
+            <td>${c.center}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// --- Handle Dropdown Selection ---
+stateSelect.addEventListener("change", e => {
+  const selected = e.target.value;
+  if (selected === "all") {
+    map.setView([22.9734, 78.6569], 5);
+    markers.forEach(m => map.removeLayer(m));
+    document.getElementById("stateInfo").innerHTML = `<p><i>Click a state on the map to see details.</i></p>`;
+    return;
+  }
+  if (stateLayer) {
+    stateLayer.eachLayer(l => {
+      if (l.feature.properties.NAME_1 === selected) {
+        onStateClick(selected, l);
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>
