@@ -1,71 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kia Carens Clavis Dashboard</title>
+<title>Kia Carens Analytics</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body {
-  margin: 0;
-  font-family: "Segoe UI";
-  background: linear-gradient(135deg, #0f2027, #203a43);
-  color: white;
+body { font-family: Arial; background:#0f2027; color:white; margin:0; }
+.container { padding:20px; }
+
+.filters { display:flex; gap:10px; margin-bottom:20px; }
+
+.card { background:#1e3c47; padding:15px; border-radius:10px; margin:10px 0; }
+
+.grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap:15px;
 }
 
-.container {
-  padding: 20px;
-}
-
-h1 {
-  text-align: center;
-}
-
-.filters {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-select {
-  padding: 8px;
-  border-radius: 6px;
-  border: none;
-}
-
-.card {
-  background: #1e3c47;
-  padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  padding: 10px;
-  border-bottom: 1px solid #555;
-}
-
-th {
-  background: #2c5364;
-}
-
-button {
-  margin-bottom: 15px;
-  padding: 10px;
-  border: none;
-  background: #00c6ff;
-  color: black;
-  cursor: pointer;
-  border-radius: 6px;
+.kpi {
+  background:#2c5364;
+  padding:15px;
+  border-radius:8px;
+  text-align:center;
 }
 </style>
 </head>
@@ -76,7 +35,7 @@ button {
 
 <button onclick="goHome()">⬅ Home</button>
 
-<h1>🚙 Kia Carens Clavis Service Intelligence</h1>
+<h1>🚙 Kia Carens Clavis Analytics</h1>
 
 <div class="filters">
   <select id="city"></select>
@@ -84,14 +43,20 @@ button {
   <select id="variant"></select>
 </div>
 
-<div class="card">
-  <h3>📊 Service Cost Trend</h3>
-  <canvas id="chart"></canvas>
+<div class="grid">
+  <div class="kpi" id="total"></div>
+  <div class="kpi" id="avg"></div>
+  <div class="kpi" id="max"></div>
+</div>
+
+<div class="grid">
+  <div class="card"><canvas id="line"></canvas></div>
+  <div class="card"><canvas id="bar"></canvas></div>
+  <div class="card"><canvas id="pie"></canvas></div>
 </div>
 
 <div class="card">
-  <h3>📋 Service Breakdown</h3>
-  <table id="table"></table>
+<table id="table"></table>
 </div>
 
 </div>
@@ -99,115 +64,137 @@ button {
 <script>
 
 let rawData = [];
-let chart;
+let charts = {};
 
-// 🚀 LOAD EXCEL FROM REPO
+// LOAD EXCEL
 fetch("clavis.xlsx")
 .then(res => res.arrayBuffer())
 .then(data => {
 
-  const workbook = XLSX.read(data, {type:"array"});
-  const sheet = workbook.Sheets["Sheet2"];
-
+  const wb = XLSX.read(data, {type:"array"});
+  const sheet = wb.Sheets["Sheet2"];
   let raw = XLSX.utils.sheet_to_json(sheet);
 
-  // 🔥 CLEAN & NORMALIZE DATA
+  // ✅ CLEAN DATA PROPERLY
   rawData = raw.map(r => ({
     city: r["CITY"],
     engine: r["ENGINE"],
     variant: (r["   VARIANT"] || "").trim(),
-    year: parseInt(r["INTERVAL"]),
-    km: r["INTERVAL"],
-    cost: r["GRAND TOTAL"]
-  }));
+
+    year: parseInt(r["   INTERVAL"]),   // ✅ FIXED
+    km: r["INTERVAL"],                  // ✅ FIXED
+
+    cost: r["GRAND TOTAL"] || 0,
+    labour: r["LABOUR \nCHARGES"] || 0,
+    parts: r["SPARE PARTS \nCHARGES"] || 0,
+    consumables: r["CONSUMABLE \nCHARGES"] || 0
+  }))
+  .filter(d => d.year && d.cost); // remove junk rows
 
   initFilters();
-  updateDashboard();
+  update();
 });
 
-// 🎛️ FILTERS
+// FILTERS
 function initFilters(){
-  fill("city", "city");
-  fill("engine", "engine");
-  fill("variant", "variant");
+  fill("city","city");
+  fill("engine","engine");
+  fill("variant","variant");
 }
 
-function fill(id, key){
-  const values = [...new Set(rawData.map(d => d[key]).filter(Boolean))];
-  const el = document.getElementById(id);
+function fill(id,key){
+  const vals=[...new Set(rawData.map(d=>d[key]).filter(Boolean))];
+  const el=document.getElementById(id);
 
-  el.innerHTML = `<option value="all">All ${key}</option>`;
-  values.forEach(v=>{
-    el.innerHTML += `<option value="${v}">${v}</option>`;
-  });
+  el.innerHTML=`<option value="all">All ${key}</option>`;
+  vals.forEach(v=> el.innerHTML+=`<option>${v}</option>`);
 
-  el.onchange = updateDashboard;
+  el.onchange=update;
 }
 
-// 🔍 FILTER LOGIC
+// FILTER LOGIC
 function getFiltered(){
-  const city = document.getElementById("city").value;
-  const engine = document.getElementById("engine").value;
-  const variant = document.getElementById("variant").value;
+  const c=city.value, e=engine.value, v=variant.value;
 
   return rawData.filter(d =>
-    (city==="all" || d.city===city) &&
-    (engine==="all" || d.engine===engine) &&
-    (variant==="all" || d.variant===variant)
+    (c==="all"||d.city===c) &&
+    (e==="all"||d.engine===e) &&
+    (v==="all"||d.variant===v)
   );
 }
 
-// 📊 UPDATE DASHBOARD
-function updateDashboard(){
+// MAIN UPDATE
+function update(){
 
-  let data = getFiltered();
+  let data=getFiltered();
 
-  // Sort by year
-  data.sort((a,b)=> a.year - b.year);
+  // ✅ REMOVE DUPLICATES (important)
+  const unique = {};
+  data.forEach(d=>{
+    unique[d.year] = d;
+  });
 
-  const labels = data.map(d => "Year " + d.year);
-  const values = data.map(d => d.cost);
+  data = Object.values(unique).sort((a,b)=>a.year-b.year);
 
-  if(chart) chart.destroy();
+  const labels = data.map(d=>"Y"+d.year);
+  const values = data.map(d=>d.cost);
 
-  chart = new Chart(document.getElementById("chart"), {
-    type:'line',
+  // KPI
+  const total = values.reduce((a,b)=>a+b,0);
+  const avg = Math.round(total/(values.length||1));
+  const max = Math.max(...values,0);
+
+  totalDiv.innerHTML=`💰 Total ₹${total}`;
+  avgDiv.innerHTML=`📊 Avg ₹${avg}`;
+  maxDiv.innerHTML=`🚨 Max ₹${max}`;
+
+  // LINE
+  draw("line","line",labels,values);
+
+  // BAR
+  draw("bar","bar",labels,values);
+
+  // PIE
+  const labour = data.reduce((a,b)=>a+b.labour,0);
+  const parts = data.reduce((a,b)=>a+b.parts,0);
+  const cons = data.reduce((a,b)=>a+b.consumables,0);
+
+  if(charts.pie) charts.pie.destroy();
+  charts.pie = new Chart(pie, {
+    type:'pie',
     data:{
-      labels: labels,
-      datasets:[{
-        label:"Service Cost (₹)",
-        data: values,
-        borderWidth:2,
-        tension: 0.3
-      }]
+      labels:["Labour","Parts","Consumables"],
+      datasets:[{data:[labour,parts,cons]}]
     }
   });
 
   // TABLE
-  let html = `
-    <tr>
-      <th>Year</th>
-      <th>KM</th>
-      <th>Total Cost</th>
-    </tr>
-  `;
+  let html="<tr><th>Year</th><th>KM</th><th>Cost</th></tr>";
 
   data.forEach(d=>{
-    html += `
-      <tr>
-        <td>${d.year}</td>
-        <td>${d.km}</td>
-        <td>₹${d.cost}</td>
-      </tr>
-    `;
+    html+=`<tr>
+      <td>${d.year}</td>
+      <td>${d.km}</td>
+      <td>₹${d.cost}</td>
+    </tr>`;
   });
 
-  document.getElementById("table").innerHTML = html;
+  table.innerHTML=html;
 }
 
-// 🧭 NAVIGATION
+// CHART HELPER
+function draw(id,type,labels,data){
+  if(charts[id]) charts[id].destroy();
+
+  charts[id] = new Chart(document.getElementById(id),{
+    type,
+    data:{labels, datasets:[{label:"₹", data}]}
+  });
+}
+
+// NAV
 function goHome(){
-  window.location.href="index.html";
+  location.href="index.html";
 }
 
 </script>
