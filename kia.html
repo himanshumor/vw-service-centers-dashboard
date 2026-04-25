@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kia Carens Clavis Service Cost</title>
+<title>Kia Carens Clavis Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -21,6 +21,19 @@ body {
 
 h1 {
   text-align: center;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+select {
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
 }
 
 .card {
@@ -62,23 +75,29 @@ button {
 
 <button onclick="goHome()">⬅ Home</button>
 
-<h1>🚙 Kia Carens Clavis Service Cost</h1>
+<h1>🚙 Kia Carens Clavis Interactive Dashboard</h1>
 
+<!-- Filters -->
+<div class="filters">
+  <select id="cityFilter"></select>
+  <select id="engineFilter"></select>
+  <select id="variantFilter"></select>
+</div>
+
+<!-- Chart -->
 <div class="card">
   <h3>📊 Service Cost Trend</h3>
   <canvas id="costChart"></canvas>
 </div>
 
+<!-- Table -->
 <div class="card">
-  <h3>📋 Detailed Breakdown</h3>
+  <h3>📋 Service Breakdown</h3>
   <table>
     <thead>
       <tr>
         <th>Year</th>
         <th>KMs</th>
-        <th>Engine Oil</th>
-        <th>Oil Filter</th>
-        <th>Labour</th>
         <th>Total Cost</th>
       </tr>
     </thead>
@@ -90,43 +109,98 @@ button {
 
 <script>
 
-// Extracted from your Excel
-const serviceData = [
-  {year: "1 Year", km: "10K", oil: 1708, filter: 404, labour: 0, total: 2112},
-  {year: "2 Year", km: "20K", oil: 1708, filter: 404, labour: 1019, total: 2727},
-  {year: "3 Year", km: "30K", oil: 1708, filter: 404, labour: 2290, total: 3815}
+// Sample extracted dataset (expand later if needed)
+const data = [
+  {city:"DELHI", engine:"1.5 DIESEL", variant:"HTK Plus 7", year:"1 Year", km:"10K", total:2112},
+  {city:"DELHI", engine:"1.5 DIESEL", variant:"HTK Plus 7", year:"2 Year", km:"20K", total:2727},
+  {city:"DELHI", engine:"1.5 DIESEL", variant:"HTK Plus 7", year:"3 Year", km:"30K", total:3815}
 ];
 
-// Populate table
-const tableBody = document.getElementById("tableBody");
+// Populate filters
+function populateFilters() {
+  const cities = [...new Set(data.map(d => d.city))];
+  const engines = [...new Set(data.map(d => d.engine))];
+  const variants = [...new Set(data.map(d => d.variant))];
 
-serviceData.forEach(d => {
-  tableBody.innerHTML += `
-    <tr>
-      <td>${d.year}</td>
-      <td>${d.km}</td>
-      <td>₹${d.oil}</td>
-      <td>₹${d.filter}</td>
-      <td>₹${d.labour}</td>
-      <td><b>₹${d.total}</b></td>
-    </tr>
-  `;
-});
+  fillSelect("cityFilter", cities);
+  fillSelect("engineFilter", engines);
+  fillSelect("variantFilter", variants);
+}
+
+function fillSelect(id, values) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<option value="all">All ${id}</option>`;
+  values.forEach(v => {
+    el.innerHTML += `<option value="${v}">${v}</option>`;
+  });
+}
+
+// Filter logic
+function getFilteredData() {
+  const city = document.getElementById("cityFilter").value;
+  const engine = document.getElementById("engineFilter").value;
+  const variant = document.getElementById("variantFilter").value;
+
+  return data.filter(d =>
+    (city === "all" || d.city === city) &&
+    (engine === "all" || d.engine === engine) &&
+    (variant === "all" || d.variant === variant)
+  );
+}
+
+// Update table
+function updateTable(filtered) {
+  const body = document.getElementById("tableBody");
+  body.innerHTML = "";
+
+  filtered.forEach(d => {
+    body.innerHTML += `
+      <tr>
+        <td>${d.year}</td>
+        <td>${d.km}</td>
+        <td>₹${d.total}</td>
+      </tr>
+    `;
+  });
+}
 
 // Chart
-const ctx = document.getElementById('costChart');
+let chart;
 
-new Chart(ctx, {
-  type: 'line',
-  data: {
-    labels: serviceData.map(d => d.year),
-    datasets: [{
-      label: 'Service Cost (₹)',
-      data: serviceData.map(d => d.total),
-      borderWidth: 2
-    }]
-  }
+function updateChart(filtered) {
+  const labels = filtered.map(d => d.year);
+  const values = filtered.map(d => d.total);
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("costChart"), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Service Cost (₹)',
+        data: values,
+        borderWidth: 2
+      }]
+    }
+  });
+}
+
+// Main update
+function updateDashboard() {
+  const filtered = getFilteredData();
+  updateTable(filtered);
+  updateChart(filtered);
+}
+
+// Events
+["cityFilter","engineFilter","variantFilter"].forEach(id => {
+  document.getElementById(id).addEventListener("change", updateDashboard);
 });
+
+// Init
+populateFilters();
+updateDashboard();
 
 // Navigation
 function goHome() {
