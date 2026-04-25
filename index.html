@@ -1,81 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Car Service Dashboard</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Global Car Service Dashboard</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Arial;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
 
-    .container {
-      text-align: center;
-    }
+  .container {
+    text-align: center;
+    width: 90%;
+    max-width: 800px;
+  }
 
-    h1 {
-      margin-bottom: 30px;
-    }
+  h1 {
+    margin-bottom: 30px;
+  }
 
-    .card {
-      display: inline-block;
-      background: white;
-      color: #333;
-      padding: 30px;
-      margin: 15px;
-      border-radius: 12px;
-      width: 250px;
-      cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
+  select {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+    margin-bottom: 20px;
+    width: 250px;
+  }
 
-    .card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    }
+  .brands {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
 
-    .card h2 {
-      margin-bottom: 10px;
-      color: #004d99;
-    }
+  .card {
+    background: white;
+    color: #333;
+    padding: 25px;
+    border-radius: 12px;
+    width: 200px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
 
-    .card p {
-      font-size: 14px;
-    }
-  </style>
+  .card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  }
+
+  .hidden {
+    display: none;
+  }
+</style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>🚗 Car Service Dashboard</h1>
 
-    <div class="card" onclick="goToVW()">
-      <h2>Volkswagen</h2>
-      <p>Explore VW Service Centers across India</p>
-    </div>
+<div class="container">
 
-    <div class="card" onclick="goToKia()">
-      <h2>Kia Carens</h2>
-      <p>View Service Cost & Maintenance</p>
-    </div>
+  <h1>🌍 Global Car Service Dashboard</h1>
+
+  <!-- Country Selection -->
+  <div>
+    <h3>Select Country</h3>
+    <select id="countrySelect">
+      <option value="">-- Choose Country --</option>
+      <option value="india">India</option>
+      <option value="usa">USA (coming soon)</option>
+      <option value="germany">Germany (coming soon)</option>
+    </select>
   </div>
 
-  <script>
-    function goToVW() {
-      window.location.href = "vw.html";  // your current file
-    }
+  <!-- Brands Section -->
+  <div id="brandSection" class="hidden">
+    <h3>Select Brand</h3>
+    <div class="brands" id="brandsContainer"></div>
+  </div>
 
-    function goToKia() {
-      window.location.href = "kia.html"; // your Kia page
-    }
-  </script>
+</div>
+
+<script>
+
+const brandData = {
+  india: [
+    { name: "Volkswagen", page: "vw.html" },
+    { name: "Kia Carens", page: "kia.html" },
+    { name: "Hyundai", page: "#" },
+    { name: "Tata", page: "#" }
+  ]
+};
+
+const countrySelect = document.getElementById("countrySelect");
+const brandSection = document.getElementById("brandSection");
+const brandsContainer = document.getElementById("brandsContainer");
+
+countrySelect.addEventListener("change", function() {
+  const country = this.value;
+
+  brandsContainer.innerHTML = "";
+
+  if (brandData[country]) {
+    brandSection.classList.remove("hidden");
+
+    brandData[country].forEach(brand => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `<h3>${brand.name}</h3>`;
+
+      card.onclick = () => {
+        if (brand.page !== "#") {
+          window.location.href = brand.page;
+        } else {
+          alert("Coming soon 🚀");
+        }
+      };
+
+      brandsContainer.appendChild(card);
+    });
+
+  } else {
+    brandSection.classList.add("hidden");
+  }
+});
+
+</script>
+
 </body>
 </html>
