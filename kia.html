@@ -1,80 +1,130 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Kia Carens Clavis Dashboard</title>
+<title>Kia Clavis Premium Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body {
-  margin:0;
-  font-family:Segoe UI;
-  background:#0b1c24;
-  color:white;
-  display:flex;
+
+body{
+margin:0;
+font-family:Segoe UI;
+background:radial-gradient(circle at top,#0b2a36,#07151c);
+color:white;
+display:flex;
+overflow:hidden;
 }
 
 /* SIDEBAR */
-.sidebar {
-  width:260px;
-  background:#07161d;
-  padding:20px;
-  border-right:1px solid #123;
+.sidebar{
+width:280px;
+background:rgba(10,20,30,0.9);
+backdrop-filter: blur(12px);
+padding:20px;
+border-right:1px solid rgba(255,255,255,0.05);
 }
 
-.sidebar h2 { margin-bottom:20px; }
-.sidebar div {
-  padding:10px;
-  margin:5px 0;
-  border-radius:6px;
-  cursor:pointer;
+.sidebar img{
+width:100%;
+border-radius:12px;
+margin-bottom:15px;
 }
-.sidebar div:hover { background:#123; }
+
+.sidebar h2{margin:5px 0;}
+.sidebar p{opacity:.7;font-size:13px;}
 
 /* MAIN */
-.main {
-  flex:1;
-  padding:20px;
+.main{
+flex:1;
+padding:20px;
+overflow-y:auto;
+}
+
+/* TOP BAR */
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
+.filters select{
+background:rgba(255,255,255,0.05);
+border:1px solid rgba(255,255,255,0.1);
+color:white;
+padding:8px 10px;
+border-radius:8px;
+margin-right:10px;
 }
 
 /* KPI */
-.kpi-row {
-  display:grid;
-  grid-template-columns: repeat(5,1fr);
-  gap:10px;
+.kpi-row{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:15px;
 }
 
-.kpi {
-  background:#132a35;
-  padding:15px;
-  border-radius:12px;
-  text-align:center;
+.kpi{
+background:rgba(255,255,255,0.05);
+backdrop-filter: blur(10px);
+border-radius:12px;
+padding:15px;
+text-align:center;
+transition:0.3s;
 }
 
-/* CHART GRID */
-.grid {
-  display:grid;
-  grid-template-columns: 2fr 1fr;
-  gap:15px;
-  margin-top:20px;
+.kpi:hover{
+transform:translateY(-3px);
+box-shadow:0 10px 20px rgba(0,0,0,0.4);
 }
 
-.card {
-  background:#132a35;
-  padding:15px;
-  border-radius:12px;
+/* GRID */
+.grid{
+display:grid;
+grid-template-columns:2fr 1fr;
+gap:20px;
+margin-top:20px;
+}
+
+.card{
+background:rgba(255,255,255,0.05);
+backdrop-filter: blur(12px);
+border-radius:14px;
+padding:15px;
+transition:0.3s;
+}
+
+.card:hover{
+box-shadow:0 0 25px rgba(0,200,255,0.2);
 }
 
 /* TABLE */
-table { width:100%; margin-top:10px; }
-td,th { padding:6px; border-bottom:1px solid #333; }
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:10px;
+}
+td,th{
+padding:8px;
+border-bottom:1px solid rgba(255,255,255,0.1);
+}
 
-/* RIGHT PANEL */
-.insights {
-  background:#132a35;
-  padding:15px;
-  border-radius:12px;
+/* INSIGHTS */
+.insights{
+background:rgba(255,255,255,0.05);
+border-radius:14px;
+padding:15px;
+}
+
+/* ANIMATION */
+.fade-in{
+animation:fade 0.8s ease;
+}
+@keyframes fade{
+from{opacity:0; transform:translateY(10px);}
+to{opacity:1;}
 }
 
 </style>
@@ -83,58 +133,65 @@ td,th { padding:6px; border-bottom:1px solid #333; }
 <body>
 
 <!-- SIDEBAR -->
-<div class="sidebar">
-  <h2>🚗 Kia Dashboard</h2>
+<div class="sidebar fade-in">
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Kia_Carens_2022.jpg/640px-Kia_Carens_2022.jpg">
 
-  <div>Overview</div>
-  <div>Yearly Analysis</div>
-  <div>Service Details</div>
-  <div>Cost Breakdown</div>
+<h2>Kia Carens Clavis</h2>
+<p>1.5 Diesel • Manual</p>
+<p>7 Seater • 10 Years</p>
 </div>
 
 <!-- MAIN -->
 <div class="main">
 
-<h2>Kia Carens Clavis Service Intelligence</h2>
+<div class="topbar fade-in">
+<div class="filters">
+<select><option>All Cities</option></select>
+<select><option>1.5 Diesel</option></select>
+<select><option>HTK+ 7 Seater</option></select>
+</div>
+<button onclick="location.reload()">Reset</button>
+</div>
+
+<h2 class="fade-in">Service Cost Intelligence</h2>
 
 <!-- KPI -->
-<div class="kpi-row">
-  <div class="kpi" id="total"></div>
-  <div class="kpi" id="avg"></div>
-  <div class="kpi" id="max"></div>
-  <div class="kpi" id="min"></div>
-  <div class="kpi" id="perkm"></div>
+<div class="kpi-row fade-in">
+<div class="kpi" id="total"></div>
+<div class="kpi" id="avg"></div>
+<div class="kpi" id="max"></div>
+<div class="kpi" id="min"></div>
+<div class="kpi" id="perkm"></div>
 </div>
 
 <!-- CHARTS -->
 <div class="grid">
-  <div class="card">
-    <h3>Year-wise Cost</h3>
-    <canvas id="line"></canvas>
-  </div>
+<div class="card fade-in">
+<h3>Year-wise Cost</h3>
+<canvas id="line"></canvas>
+</div>
 
-  <div class="card">
-    <h3>Cost Breakdown</h3>
-    <canvas id="pie"></canvas>
-  </div>
+<div class="card fade-in">
+<h3>Cost Breakdown</h3>
+<canvas id="pie"></canvas>
+</div>
 </div>
 
 <div class="grid">
-  <div class="card">
-    <h3>Category Cost</h3>
-    <canvas id="bar"></canvas>
-  </div>
-
-  <div class="insights" id="insights">
-    <h3>Insights</h3>
-    <p>Click a year to see service details</p>
-  </div>
+<div class="card fade-in">
+<h3>Category Cost</h3>
+<canvas id="bar"></canvas>
 </div>
 
-<!-- TABLE -->
-<div class="card">
-  <h3>Service Table</h3>
-  <table id="table"></table>
+<div class="insights fade-in" id="insights">
+<h3>Insights</h3>
+<p>Click on chart to explore service details</p>
+</div>
+</div>
+
+<div class="card fade-in">
+<h3>Service Table</h3>
+<table id="table"></table>
 </div>
 
 </div>
@@ -142,6 +199,16 @@ td,th { padding:6px; border-bottom:1px solid #333; }
 <script>
 
 let charts={};
+
+function animateValue(el,start,end){
+let i=start;
+const step=(end-start)/20;
+const interval=setInterval(()=>{
+i+=step;
+if(i>=end){i=end; clearInterval(interval);}
+el.innerHTML="₹ "+Math.round(i);
+},20);
+}
 
 fetch("clavis.xlsx")
 .then(r=>r.arrayBuffer())
@@ -152,52 +219,51 @@ const sheet=wb.Sheets["Sheet2"];
 const raw=XLSX.utils.sheet_to_json(sheet);
 
 const clean=raw.map(r=>{
-
 const keys=Object.keys(r);
-
-const yearRaw = r[keys.find(k=>k.includes("INTERVAL") && r[k]?.includes("YEAR"))];
-const kmRaw   = r[keys.find(k=>k.includes("INTERVAL") && r[k]?.includes("KMS"))];
+const yearRaw=r[keys.find(k=>k.includes("INTERVAL")&&r[k]?.includes("YEAR"))];
+const kmRaw=r[keys.find(k=>k.includes("INTERVAL")&&r[k]?.includes("KMS"))];
 
 return{
-  year:parseInt(yearRaw),
-  km:parseInt(kmRaw),
-
-  cost:Number(r["GRAND TOTAL"]||0),
-  labour:Number(r["LABOUR CHARGES"]||0),
-  parts:Number(r["SPARE PARTS CHARGES"]||0),
-  cons:Number(r["CONSUMABLE CHARGES"]||0),
-
-  oil:Number(r["ENGINE OIL"]||0),
-  oilFilter:Number(r["ENGINE OIL FILTER"]||0),
-  coolant:Number(r["COOLANT (ENGINE)"]||0),
-  brake:Number(r["BRAKE / CLUTCH FLUID"]||0)
+year:parseInt(yearRaw),
+km:parseInt(kmRaw),
+cost:Number(r["GRAND TOTAL"]||0),
+labour:Number(r["LABOUR CHARGES"]||0),
+parts:Number(r["SPARE PARTS CHARGES"]||0),
+cons:Number(r["CONSUMABLE CHARGES"]||0),
+oil:Number(r["ENGINE OIL"]||0),
+filter:Number(r["ENGINE OIL FILTER"]||0),
+coolant:Number(r["COOLANT (ENGINE)"]||0),
+brake:Number(r["BRAKE / CLUTCH FLUID"]||0)
 };
-
-}).filter(d=>d.year && d.cost);
+}).filter(d=>d.year&&d.cost);
 
 // GROUP
 const map={};
 clean.forEach(d=>map[d.year]=d);
-
 const dataArr=Object.values(map).sort((a,b)=>a.year-b.year);
 
 // KPI
 const total=dataArr.reduce((a,b)=>a+b.cost,0);
 
-total.innerHTML="💰 ₹"+total;
-avg.innerHTML="📊 ₹"+Math.round(total/10);
-max.innerHTML="🚨 ₹"+Math.max(...dataArr.map(d=>d.cost));
-min.innerHTML="📉 ₹"+Math.min(...dataArr.map(d=>d.cost));
-perkm.innerHTML="₹"+(total/100000).toFixed(2)+"/km";
+animateValue(totalEl=total,total);
+animateValue(avgEl=avg,Math.round(total/10));
+animateValue(maxEl=max,Math.max(...dataArr.map(d=>d.cost)));
+animateValue(minEl=min,Math.min(...dataArr.map(d=>d.cost)));
+perkm.innerHTML="₹ "+(total/100000).toFixed(2)+"/km";
 
 // LINE
 charts.line=new Chart(line,{
 type:'line',
 data:{
 labels:dataArr.map(d=>"Y"+d.year),
-datasets:[{data:dataArr.map(d=>d.cost)}]
+datasets:[{
+data:dataArr.map(d=>d.cost),
+borderColor:"#00c6ff",
+tension:0.4
+}]
 },
 options:{
+animation:{duration:1500},
 onClick:(e,el)=>{
 if(el.length){
 showDetails(dataArr[el[0].index]);
@@ -216,9 +282,11 @@ data:[
 dataArr.reduce((a,b)=>a+b.parts,0),
 dataArr.reduce((a,b)=>a+b.labour,0),
 dataArr.reduce((a,b)=>a+b.cons,0)
-]
+],
+backgroundColor:["#ff4d6d","#00c6ff","#ffaa00"]
 }]
-}
+},
+options:{animation:{duration:1500}}
 });
 
 // BAR
@@ -231,33 +299,31 @@ data:[
 dataArr.reduce((a,b)=>a+b.parts,0),
 dataArr.reduce((a,b)=>a+b.labour,0),
 dataArr.reduce((a,b)=>a+b.cons,0)
-]
+],
+backgroundColor:["#ff4d6d","#00c6ff","#ffaa00"]
 }]
-}
+},
+options:{animation:{duration:1500}}
 });
 
 // TABLE
 let html="<tr><th>Year</th><th>KM</th><th>Cost</th></tr>";
 dataArr.forEach(d=>{
-html+=`<tr>
-<td>${d.year}</td>
-<td>${d.km}</td>
-<td>₹${d.cost}</td>
-</tr>`;
+html+=`<tr><td>${d.year}</td><td>${d.km}</td><td>₹${d.cost}</td></tr>`;
 });
 table.innerHTML=html;
 
 });
 
-// DETAILS PANEL
+// DETAILS
 function showDetails(d){
 insights.innerHTML=`
-<h3>🔧 Year ${d.year} (${d.km} KM)</h3>
-<p>Engine Oil: ₹${d.oil}</p>
-<p>Oil Filter: ₹${d.oilFilter}</p>
+<h3>🔧 Year ${d.year}</h3>
+<p>Oil: ₹${d.oil}</p>
+<p>Filter: ₹${d.filter}</p>
 <p>Coolant: ₹${d.coolant}</p>
-<p>Brake Fluid: ₹${d.brake}</p>
-<p><b>Total: ₹${d.cost}</b></p>
+<p>Brake: ₹${d.brake}</p>
+<p><b>Total ₹${d.cost}</b></p>
 `;
 }
 
