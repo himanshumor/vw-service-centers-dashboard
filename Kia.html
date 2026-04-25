@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kia Carens Clavis Service Cost</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: "Segoe UI";
+  background: #0f2027;
+  color: white;
+}
+
+.container {
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.card {
+  background: #1e3c47;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #555;
+}
+
+th {
+  background: #2c5364;
+}
+
+button {
+  margin-bottom: 20px;
+  padding: 10px;
+  border: none;
+  background: #00c6ff;
+  color: black;
+  cursor: pointer;
+  border-radius: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<button onclick="goHome()">⬅ Home</button>
+
+<h1>🚙 Kia Carens Clavis Service Cost</h1>
+
+<div class="card">
+  <h3>📊 Service Cost Trend</h3>
+  <canvas id="costChart"></canvas>
+</div>
+
+<div class="card">
+  <h3>📋 Detailed Breakdown</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Year</th>
+        <th>KMs</th>
+        <th>Engine Oil</th>
+        <th>Oil Filter</th>
+        <th>Labour</th>
+        <th>Total Cost</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+</div>
+
+<script>
+
+// Extracted from your Excel
+const serviceData = [
+  {year: "1 Year", km: "10K", oil: 1708, filter: 404, labour: 0, total: 2112},
+  {year: "2 Year", km: "20K", oil: 1708, filter: 404, labour: 1019, total: 2727},
+  {year: "3 Year", km: "30K", oil: 1708, filter: 404, labour: 2290, total: 3815}
+];
+
+// Populate table
+const tableBody = document.getElementById("tableBody");
+
+serviceData.forEach(d => {
+  tableBody.innerHTML += `
+    <tr>
+      <td>${d.year}</td>
+      <td>${d.km}</td>
+      <td>₹${d.oil}</td>
+      <td>₹${d.filter}</td>
+      <td>₹${d.labour}</td>
+      <td><b>₹${d.total}</b></td>
+    </tr>
+  `;
+});
+
+// Chart
+const ctx = document.getElementById('costChart');
+
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: serviceData.map(d => d.year),
+    datasets: [{
+      label: 'Service Cost (₹)',
+      data: serviceData.map(d => d.total),
+      borderWidth: 2
+    }]
+  }
+});
+
+// Navigation
+function goHome() {
+  window.location.href = "index.html";
+}
+
+</script>
+
+</body>
+</html>
