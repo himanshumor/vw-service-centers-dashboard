@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Car Service Dashboard</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    .card {
+      display: inline-block;
+      background: white;
+      color: #333;
+      padding: 30px;
+      margin: 15px;
+      border-radius: 12px;
+      width: 250px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .card h2 {
+      margin-bottom: 10px;
+      color: #004d99;
+    }
+
+    .card p {
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🚗 Car Service Dashboard</h1>
+
+    <div class="card" onclick="goToVW()">
+      <h2>Volkswagen</h2>
+      <p>Explore VW Service Centers across India</p>
+    </div>
+
+    <div class="card" onclick="goToKia()">
+      <h2>Kia Carens</h2>
+      <p>View Service Cost & Maintenance</p>
+    </div>
+  </div>
+
+  <script>
+    function goToVW() {
+      window.location.href = "vw.html";  // your current file
+    }
+
+    function goToKia() {
+      window.location.href = "kia.html"; // your Kia page
+    }
+  </script>
+</body>
+</html>
