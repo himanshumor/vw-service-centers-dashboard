@@ -6,12 +6,13 @@
 <title>Kia Carens Clavis Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
 body {
   margin: 0;
   font-family: "Segoe UI";
-  background: #0f2027;
+  background: linear-gradient(135deg, #0f2027, #203a43);
   color: white;
 }
 
@@ -58,7 +59,7 @@ th {
 }
 
 button {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   padding: 10px;
   border: none;
   background: #00c6ff;
@@ -75,136 +76,138 @@ button {
 
 <button onclick="goHome()">⬅ Home</button>
 
-<h1>🚙 Kia Carens Clavis Interactive Dashboard</h1>
+<h1>🚙 Kia Carens Clavis Service Intelligence</h1>
 
-<!-- Filters -->
 <div class="filters">
-  <select id="cityFilter"></select>
-  <select id="engineFilter"></select>
-  <select id="variantFilter"></select>
+  <select id="city"></select>
+  <select id="engine"></select>
+  <select id="variant"></select>
 </div>
 
-<!-- Chart -->
 <div class="card">
   <h3>📊 Service Cost Trend</h3>
-  <canvas id="costChart"></canvas>
+  <canvas id="chart"></canvas>
 </div>
 
-<!-- Table -->
 <div class="card">
   <h3>📋 Service Breakdown</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Year</th>
-        <th>KMs</th>
-        <th>Total Cost</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+  <table id="table"></table>
 </div>
 
 </div>
 
 <script>
 
-// Sample extracted dataset (expand later if needed)
-const data = [
-  {city:"DELHI", engine:"1.5 DIESEL", variant:"HTK Plus 7", year:"1 Year", km:"10K", total:2112},
-  {city:"DELHI", engine:"1.5 DIESEL", variant:"HTK Plus 7", year:"2 Year", km:"20K", total:2727},
-  {city:"DELHI", engine:"1.5 DIESEL", variant:"HTK Plus 7", year:"3 Year", km:"30K", total:3815}
-];
+let rawData = [];
+let chart;
 
-// Populate filters
-function populateFilters() {
-  const cities = [...new Set(data.map(d => d.city))];
-  const engines = [...new Set(data.map(d => d.engine))];
-  const variants = [...new Set(data.map(d => d.variant))];
+// 🚀 LOAD EXCEL FROM REPO
+fetch("clavis.xlsx")
+.then(res => res.arrayBuffer())
+.then(data => {
 
-  fillSelect("cityFilter", cities);
-  fillSelect("engineFilter", engines);
-  fillSelect("variantFilter", variants);
+  const workbook = XLSX.read(data, {type:"array"});
+  const sheet = workbook.Sheets["Sheet2"];
+
+  let raw = XLSX.utils.sheet_to_json(sheet);
+
+  // 🔥 CLEAN & NORMALIZE DATA
+  rawData = raw.map(r => ({
+    city: r["CITY"],
+    engine: r["ENGINE"],
+    variant: (r["   VARIANT"] || "").trim(),
+    year: parseInt(r["INTERVAL"]),
+    km: r["INTERVAL"],
+    cost: r["GRAND TOTAL"]
+  }));
+
+  initFilters();
+  updateDashboard();
+});
+
+// 🎛️ FILTERS
+function initFilters(){
+  fill("city", "city");
+  fill("engine", "engine");
+  fill("variant", "variant");
 }
 
-function fillSelect(id, values) {
+function fill(id, key){
+  const values = [...new Set(rawData.map(d => d[key]).filter(Boolean))];
   const el = document.getElementById(id);
-  el.innerHTML = `<option value="all">All ${id}</option>`;
-  values.forEach(v => {
+
+  el.innerHTML = `<option value="all">All ${key}</option>`;
+  values.forEach(v=>{
     el.innerHTML += `<option value="${v}">${v}</option>`;
   });
+
+  el.onchange = updateDashboard;
 }
 
-// Filter logic
-function getFilteredData() {
-  const city = document.getElementById("cityFilter").value;
-  const engine = document.getElementById("engineFilter").value;
-  const variant = document.getElementById("variantFilter").value;
+// 🔍 FILTER LOGIC
+function getFiltered(){
+  const city = document.getElementById("city").value;
+  const engine = document.getElementById("engine").value;
+  const variant = document.getElementById("variant").value;
 
-  return data.filter(d =>
-    (city === "all" || d.city === city) &&
-    (engine === "all" || d.engine === engine) &&
-    (variant === "all" || d.variant === variant)
+  return rawData.filter(d =>
+    (city==="all" || d.city===city) &&
+    (engine==="all" || d.engine===engine) &&
+    (variant==="all" || d.variant===variant)
   );
 }
 
-// Update table
-function updateTable(filtered) {
-  const body = document.getElementById("tableBody");
-  body.innerHTML = "";
+// 📊 UPDATE DASHBOARD
+function updateDashboard(){
 
-  filtered.forEach(d => {
-    body.innerHTML += `
-      <tr>
-        <td>${d.year}</td>
-        <td>${d.km}</td>
-        <td>₹${d.total}</td>
-      </tr>
-    `;
-  });
-}
+  let data = getFiltered();
 
-// Chart
-let chart;
+  // Sort by year
+  data.sort((a,b)=> a.year - b.year);
 
-function updateChart(filtered) {
-  const labels = filtered.map(d => d.year);
-  const values = filtered.map(d => d.total);
+  const labels = data.map(d => "Year " + d.year);
+  const values = data.map(d => d.cost);
 
-  if (chart) chart.destroy();
+  if(chart) chart.destroy();
 
-  chart = new Chart(document.getElementById("costChart"), {
-    type: 'line',
-    data: {
+  chart = new Chart(document.getElementById("chart"), {
+    type:'line',
+    data:{
       labels: labels,
-      datasets: [{
-        label: 'Service Cost (₹)',
+      datasets:[{
+        label:"Service Cost (₹)",
         data: values,
-        borderWidth: 2
+        borderWidth:2,
+        tension: 0.3
       }]
     }
   });
+
+  // TABLE
+  let html = `
+    <tr>
+      <th>Year</th>
+      <th>KM</th>
+      <th>Total Cost</th>
+    </tr>
+  `;
+
+  data.forEach(d=>{
+    html += `
+      <tr>
+        <td>${d.year}</td>
+        <td>${d.km}</td>
+        <td>₹${d.cost}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("table").innerHTML = html;
 }
 
-// Main update
-function updateDashboard() {
-  const filtered = getFilteredData();
-  updateTable(filtered);
-  updateChart(filtered);
-}
-
-// Events
-["cityFilter","engineFilter","variantFilter"].forEach(id => {
-  document.getElementById(id).addEventListener("change", updateDashboard);
-});
-
-// Init
-populateFilters();
-updateDashboard();
-
-// Navigation
-function goHome() {
-  window.location.href = "index.html";
+// 🧭 NAVIGATION
+function goHome(){
+  window.location.href="index.html";
 }
 
 </script>
