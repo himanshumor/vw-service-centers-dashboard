@@ -48,7 +48,7 @@ button {
   <select id="city"></select>
   <select id="engine"></select>
   <select id="variant"></select>
-  <button onclick="resetYear()">Reset Year Filter</button>
+  <button onclick="resetYear()">Reset Year</button>
 </div>
 
 <div class="grid">
@@ -64,7 +64,7 @@ button {
 </div>
 
 <div class="card" id="breakdown">
-  <h3>📊 Click a year in chart to see breakdown</h3>
+  <h3>📊 Click a year in chart to see full service details</h3>
 </div>
 
 <div class="card">
@@ -102,7 +102,7 @@ fetch("clavis.xlsx")
     const keys = Object.keys(r);
     const find = k => keys.find(x => x.toUpperCase().includes(k));
 
-    return {
+    let obj = {
       city: r[find("CITY")],
       engine: r[find("ENGINE")],
       variant: (r[find("VARIANT")] || "").trim(),
@@ -113,6 +113,24 @@ fetch("clavis.xlsx")
       parts: r[find("SPARE")] || 0,
       consumables: r[find("CONSUMABLE")] || 0
     };
+
+    // 🔥 Add component-level fields dynamically
+    keys.forEach(k => {
+      const name = k.toUpperCase();
+
+      if(
+        name.includes("OIL") ||
+        name.includes("FILTER") ||
+        name.includes("FLUID") ||
+        name.includes("COOLANT") ||
+        name.includes("BRAKE")
+      ){
+        obj[k.trim()] = r[k];
+      }
+    });
+
+    return obj;
+
   }).filter(d => d.year && d.cost);
 
   initFilters();
@@ -196,22 +214,44 @@ function update(){
   });
   document.getElementById("table").innerHTML=html;
 
-  // BREAKDOWN
+  // 🔍 BREAKDOWN WITH COMPONENTS
   const breakdownDiv = document.getElementById("breakdown");
 
   if(data.length === 1){
     const d = data[0];
 
+    const components = Object.keys(d)
+      .filter(k =>
+        !["city","engine","variant","year","km","cost","labour","parts","consumables"].includes(k)
+      )
+      .filter(k => d[k] && d[k] !== 0);
+
+    let compHTML = "";
+
+    components.forEach(c => {
+      compHTML += `<li>${c} : ₹${d[c]}</li>`;
+    });
+
     breakdownDiv.innerHTML = `
       <h3>🔍 Year ${d.year} Service Breakdown</h3>
-      <p>💰 Total: ₹${d.cost}</p>
-      <p>🛠 Labour: ₹${d.labour}</p>
-      <p>🔩 Parts: ₹${d.parts}</p>
-      <p>🧴 Consumables: ₹${d.consumables}</p>
+
+      <p><b>Total:</b> ₹${d.cost}</p>
+
+      <h4>💸 Cost Distribution</h4>
+      <ul>
+        <li>🛠 Labour: ₹${d.labour}</li>
+        <li>🔩 Parts: ₹${d.parts}</li>
+        <li>🧴 Consumables: ₹${d.consumables}</li>
+      </ul>
+
+      <h4>🔧 Components Serviced</h4>
+      <ul>
+        ${compHTML || "<li>No detailed components available</li>"}
+      </ul>
     `;
   } else {
     breakdownDiv.innerHTML = `
-      <h3>📊 Click a year in chart to see breakdown</h3>
+      <h3>📊 Click a year in chart to see full service details</h3>
     `;
   }
 }
