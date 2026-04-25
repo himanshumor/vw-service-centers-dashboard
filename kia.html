@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Kia Dashboard FIXED</title>
+<title>Kia Carens Clavis Intelligence</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -16,11 +16,28 @@ body { background:#0b1c24; color:white; font-family:Arial; }
   gap:10px;
 }
 
-.kpi { background:#16313d; padding:10px; border-radius:8px; }
+.kpi {
+  background:#16313d;
+  padding:12px;
+  border-radius:10px;
+  text-align:center;
+}
 
-.card { background:#132a35; padding:10px; margin-top:15px; border-radius:10px; }
+.grid {
+  display:grid;
+  grid-template-columns: repeat(2,1fr);
+  gap:15px;
+  margin-top:20px;
+}
 
-img { width:100%; border-radius:10px; }
+.card {
+  background:#132a35;
+  padding:15px;
+  border-radius:12px;
+}
+
+table { width:100%; margin-top:10px; }
+td,th { padding:6px; border-bottom:1px solid #333; }
 </style>
 </head>
 
@@ -28,7 +45,7 @@ img { width:100%; border-radius:10px; }
 
 <div class="container">
 
-<h2>🚙 Kia Dashboard</h2>
+<h2>🚙 Kia Carens Clavis Intelligence</h2>
 
 <div class="kpi-grid">
   <div class="kpi" id="total"></div>
@@ -37,102 +54,143 @@ img { width:100%; border-radius:10px; }
   <div class="kpi" id="perkm"></div>
 </div>
 
-<div class="card">
-  <canvas id="line"></canvas>
+<div class="grid">
+  <div class="card"><canvas id="line"></canvas></div>
+  <div class="card"><canvas id="bar"></canvas></div>
+</div>
+
+<div class="grid">
+  <div class="card"><canvas id="pie"></canvas></div>
+  <div class="card" id="details"></div>
 </div>
 
 <div class="card">
-  <canvas id="bar"></canvas>
-</div>
-
-<div class="card">
-  <canvas id="pie"></canvas>
-</div>
-
-<div class="card">
-  <h3>🚘 Car</h3>
-  <!-- ✅ WORKING IMAGE -->
-  <img src="https://kia.com/content/dam/kia2/in/en/images/vehicles/carens-clavis/exterior.jpg">
+  <h3>📋 Service Table</h3>
+  <table id="table"></table>
 </div>
 
 </div>
 
 <script>
 
-let charts={};
+let charts = {};
 
 fetch("clavis.xlsx")
-.then(res=>res.arrayBuffer())
-.then(data=>{
+.then(res => res.arrayBuffer())
+.then(data => {
 
-  const wb=XLSX.read(data,{type:"array"});
-
-  // ✅ AUTO DETECT SHEET
-  const sheetName = wb.SheetNames[0];
-  const sheet = wb.Sheets[sheetName];
-
+  const wb = XLSX.read(data, {type:"array"});
+  const sheet = wb.Sheets["Sheet2"]; // correct sheet
   const raw = XLSX.utils.sheet_to_json(sheet);
 
-  console.log("RAW DATA:", raw);
+  console.log("RAW:", raw);
 
-  const clean = raw.map(r=>({
+  const clean = raw.map(r => {
 
-    year: parseInt(r["INTERVAL"] || r["   INTERVAL"]),
-    cost: Number(r["GRAND TOTAL"] || 0),
-    labour: Number(r["LABOUR \nCHARGES"] || 0),
-    parts: Number(r["SPARE PARTS \nCHARGES"] || 0),
-    cons: Number(r["CONSUMABLE \nCHARGES"] || 0)
+    const keys = Object.keys(r);
 
-  })).filter(d=>d.year && d.cost);
+    // Detect duplicate INTERVAL columns
+    const yearRaw = r[keys.find(k => k.includes("INTERVAL") && r[k]?.includes("YEAR"))];
+    const kmRaw   = r[keys.find(k => k.includes("INTERVAL") && r[k]?.includes("KMS"))];
 
-  console.log("CLEAN DATA:", clean);
+    return {
+      city: r["CITY"],
+      engine: r["ENGINE"],
+      variant: r["VARIANT"],
+
+      year: parseInt(yearRaw),
+      km: parseInt(kmRaw),
+
+      cost: Number(r["GRAND TOTAL"] || 0),
+      labour: Number(r["LABOUR CHARGES"] || 0),
+      parts: Number(r["SPARE PARTS CHARGES"] || 0),
+      cons: Number(r["CONSUMABLE CHARGES"] || 0),
+
+      oil: Number(r["ENGINE OIL"] || 0),
+      oilFilter: Number(r["ENGINE OIL FILTER"] || 0),
+      coolant: Number(r["COOLANT (ENGINE)"] || 0),
+      brake: Number(r["BRAKE / CLUTCH FLUID"] || 0)
+    };
+
+  }).filter(d => d.year && d.cost);
+
+  console.log("CLEAN:", clean);
 
   if(clean.length === 0){
-    alert("⚠️ Data not parsed. Check column names.");
+    alert("❌ Still no data. Column mismatch.");
     return;
   }
 
-  const labels = clean.map(d=>"Y"+d.year);
-  const values = clean.map(d=>d.cost);
+  // GROUP BY YEAR
+  const map = {};
+  clean.forEach(d => map[d.year] = d);
 
-  // ✅ FIX DOM
-  document.getElementById("total").innerHTML = "₹ "+values.reduce((a,b)=>a+b,0);
-  document.getElementById("avg").innerHTML = "₹ "+Math.round(values.reduce((a,b)=>a+b,0)/values.length);
-  document.getElementById("max").innerHTML = "₹ "+Math.max(...values);
-  document.getElementById("perkm").innerHTML = "₹ "+(values.reduce((a,b)=>a+b,0)/100000).toFixed(2)+"/km";
+  const dataArr = Object.values(map).sort((a,b)=>a.year-b.year);
+
+  const labels = dataArr.map(d=>"Y"+d.year);
+  const values = dataArr.map(d=>d.cost);
+
+  // KPIs
+  const total = values.reduce((a,b)=>a+b,0);
+
+  document.getElementById("total").innerHTML = "💰 ₹"+total;
+  document.getElementById("avg").innerHTML = "📊 ₹"+Math.round(total/values.length);
+  document.getElementById("max").innerHTML = "🚨 ₹"+Math.max(...values);
+  document.getElementById("perkm").innerHTML = "📉 ₹"+(total/100000).toFixed(2)+"/km";
 
   // LINE
-  charts.line = new Chart(document.getElementById("line"),{
-    type:"line",
-    data:{ labels, datasets:[{label:"Cost", data:values}] }
+  charts.line = new Chart(line,{
+    type:'line',
+    data:{labels, datasets:[{label:"Cost", data:values}]},
+    options:{
+      onClick:(e,el)=>{
+        if(el.length){
+          showDetails(dataArr[el[0].index]);
+        }
+      }
+    }
   });
 
   // BAR
-  charts.bar = new Chart(document.getElementById("bar"),{
-    type:"bar",
-    data:{ labels, datasets:[{data:values}] }
+  charts.bar = new Chart(bar,{
+    type:'bar',
+    data:{labels, datasets:[{data:values}]}
   });
 
   // PIE
-  charts.pie = new Chart(document.getElementById("pie"),{
-    type:"pie",
+  charts.pie = new Chart(pie,{
+    type:'pie',
     data:{
       labels:["Labour","Parts","Consumables"],
       datasets:[{
         data:[
-          clean.reduce((a,b)=>a+b.labour,0),
-          clean.reduce((a,b)=>a+b.parts,0),
-          clean.reduce((a,b)=>a+b.cons,0)
+          dataArr.reduce((a,b)=>a+b.labour,0),
+          dataArr.reduce((a,b)=>a+b.parts,0),
+          dataArr.reduce((a,b)=>a+b.cons,0)
         ]
       }]
     }
   });
 
-})
-.catch(err=>{
-  console.error(err);
-  alert("❌ Excel not loading. Check path.");
+  // TABLE
+  let html="<tr><th>Year</th><th>KM</th><th>Cost</th></tr>";
+  dataArr.forEach(d=>{
+    html+=`<tr><td>${d.year}</td><td>${d.km}</td><td>₹${d.cost}</td></tr>`;
+  });
+  table.innerHTML = html;
+
 });
+
+// DETAILS PANEL
+function showDetails(d){
+  details.innerHTML = `
+    <h3>🔧 Year ${d.year} Service</h3>
+    <p>Engine Oil: ₹${d.oil}</p>
+    <p>Oil Filter: ₹${d.oilFilter}</p>
+    <p>Coolant: ₹${d.coolant}</p>
+    <p>Brake Fluid: ₹${d.brake}</p>
+  `;
+}
 
 </script>
 
