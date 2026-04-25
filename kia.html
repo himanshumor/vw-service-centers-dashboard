@@ -10,7 +10,7 @@
 body { font-family: Arial; background:#0f2027; color:white; margin:0; }
 .container { padding:20px; }
 
-.filters { display:flex; gap:10px; margin-bottom:20px; }
+.filters { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
 
 .card { background:#1e3c47; padding:15px; border-radius:10px; margin:10px 0; }
 
@@ -25,6 +25,13 @@ body { font-family: Arial; background:#0f2027; color:white; margin:0; }
   padding:15px;
   border-radius:8px;
   text-align:center;
+}
+
+button {
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
 }
 </style>
 </head>
@@ -41,6 +48,7 @@ body { font-family: Arial; background:#0f2027; color:white; margin:0; }
   <select id="city"></select>
   <select id="engine"></select>
   <select id="variant"></select>
+  <button onclick="resetYear()">Reset Year Filter</button>
 </div>
 
 <div class="grid">
@@ -55,6 +63,10 @@ body { font-family: Arial; background:#0f2027; color:white; margin:0; }
   <div class="card"><canvas id="pie"></canvas></div>
 </div>
 
+<div class="card" id="breakdown">
+  <h3>📊 Click a year in chart to see breakdown</h3>
+</div>
+
 <div class="card">
 <table id="table"></table>
 </div>
@@ -65,8 +77,9 @@ body { font-family: Arial; background:#0f2027; color:white; margin:0; }
 
 let rawData = [];
 let charts = {};
+let selectedYear = null;
 
-// ✅ FIX 1: define DOM elements
+// DOM
 const cityEl = document.getElementById("city");
 const engineEl = document.getElementById("engine");
 const variantEl = document.getElementById("variant");
@@ -81,17 +94,13 @@ fetch("clavis.xlsx")
 .then(data => {
 
   const wb = XLSX.read(data, {type:"array"});
-
-  // ✅ FIX 2: safe sheet access
   const sheet = wb.Sheets[wb.SheetNames[1]];
 
   let raw = XLSX.utils.sheet_to_json(sheet);
 
-  // ✅ FIX 3: robust column detection
   rawData = raw.map(r => {
     const keys = Object.keys(r);
-
-    const find = (k) => keys.find(x => x.toUpperCase().includes(k));
+    const find = k => keys.find(x => x.toUpperCase().includes(k));
 
     return {
       city: r[find("CITY")],
@@ -110,7 +119,7 @@ fetch("clavis.xlsx")
   update();
 });
 
-// FILTERS
+// FILTER INIT
 function initFilters(){
   fill(cityEl,"city");
   fill(engineEl,"engine");
@@ -119,14 +128,12 @@ function initFilters(){
 
 function fill(el,key){
   const vals=[...new Set(rawData.map(d=>d[key]).filter(Boolean))];
-
   el.innerHTML=`<option value="all">All ${key}</option>`;
   vals.forEach(v=> el.innerHTML+=`<option>${v}</option>`);
-
   el.onchange=update;
 }
 
-// FILTER
+// FILTER DATA
 function getFiltered(){
   return rawData.filter(d =>
     (cityEl.value==="all"||d.city===cityEl.value) &&
@@ -135,14 +142,18 @@ function getFiltered(){
   );
 }
 
-// UPDATE
+// MAIN UPDATE
 function update(){
 
-  let data=getFiltered();
+  let data = getFiltered();
+
+  if(selectedYear){
+    data = data.filter(d => d.year === selectedYear);
+  }
 
   // remove duplicates
   const unique = {};
-  data.forEach(d => unique[d.year]=d);
+  data.forEach(d => unique[d.year] = d);
   data = Object.values(unique).sort((a,b)=>a.year-b.year);
 
   const labels = data.map(d=>"Y"+d.year);
@@ -160,6 +171,7 @@ function update(){
   draw("line","line",labels,values);
   draw("bar","bar",labels,values);
 
+  // PIE
   const labour = data.reduce((a,b)=>a+b.labour,0);
   const parts = data.reduce((a,b)=>a+b.parts,0);
   const cons = data.reduce((a,b)=>a+b.consumables,0);
@@ -173,8 +185,8 @@ function update(){
     }
   });
 
+  // TABLE
   let html="<tr><th>Year</th><th>KM</th><th>Cost</th></tr>";
-
   data.forEach(d=>{
     html+=`<tr>
       <td>${d.year}</td>
@@ -182,18 +194,52 @@ function update(){
       <td>₹${d.cost}</td>
     </tr>`;
   });
-
   document.getElementById("table").innerHTML=html;
+
+  // BREAKDOWN
+  const breakdownDiv = document.getElementById("breakdown");
+
+  if(data.length === 1){
+    const d = data[0];
+
+    breakdownDiv.innerHTML = `
+      <h3>🔍 Year ${d.year} Service Breakdown</h3>
+      <p>💰 Total: ₹${d.cost}</p>
+      <p>🛠 Labour: ₹${d.labour}</p>
+      <p>🔩 Parts: ₹${d.parts}</p>
+      <p>🧴 Consumables: ₹${d.consumables}</p>
+    `;
+  } else {
+    breakdownDiv.innerHTML = `
+      <h3>📊 Click a year in chart to see breakdown</h3>
+    `;
+  }
 }
 
-// CHART
+// CHART WITH CLICK
 function draw(id,type,labels,data){
+
   if(charts[id]) charts[id].destroy();
 
-  charts[id]=new Chart(document.getElementById(id),{
+  charts[id] = new Chart(document.getElementById(id),{
     type,
-    data:{labels,datasets:[{label:"₹",data}]}
+    data:{labels,datasets:[{label:"₹",data}]},
+    options:{
+      onClick: (evt, elements) => {
+        if(elements.length > 0){
+          const index = elements[0].index;
+          selectedYear = index + 1;
+          update();
+        }
+      }
+    }
   });
+}
+
+// RESET
+function resetYear(){
+  selectedYear = null;
+  update();
 }
 
 // NAV
