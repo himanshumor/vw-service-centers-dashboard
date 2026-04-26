@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Kia Clavis Premium Dashboard</title>
+<title>Kia Clavis Enterprise Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -11,38 +11,32 @@
 body{
 margin:0;
 font-family: 'Segoe UI', sans-serif;
-background: linear-gradient(135deg,#07151c,#0b2a36);
+background: radial-gradient(circle at top,#0b2a36,#02080c);
 color:#fff;
 display:flex;
 height:100vh;
+overflow:hidden;
 }
 
 /* SIDEBAR */
 .sidebar{
-width:280px;
-background:#061219;
+width:260px;
+background:rgba(0,0,0,0.6);
+backdrop-filter: blur(10px);
 padding:20px;
 display:flex;
 flex-direction:column;
 gap:15px;
+border-right:1px solid rgba(255,255,255,0.05);
 }
 
 .sidebar img{
 width:100%;
 border-radius:12px;
-object-fit:cover;
 }
 
-.sidebar h2{
-margin:10px 0 0;
-font-size:20px;
-}
-
-.sidebar p{
-opacity:.7;
-margin:2px 0;
-font-size:14px;
-}
+.sidebar h2{margin:10px 0 0;}
+.sidebar p{opacity:.6;margin:0;font-size:13px}
 
 /* MAIN */
 .main{
@@ -55,23 +49,25 @@ overflow-y:auto;
 .kpi-row{
 display:grid;
 grid-template-columns:repeat(5,1fr);
-gap:12px;
+gap:15px;
 margin-bottom:20px;
 }
 
 .kpi{
-background:#132a35;
-padding:14px;
-border-radius:12px;
+background:linear-gradient(135deg,#1c3b47,#132a35);
+padding:16px;
+border-radius:14px;
 text-align:center;
-box-shadow:0 0 10px rgba(0,0,0,0.3);
+box-shadow:0 0 20px rgba(0,255,255,0.05);
+transition:0.3s;
 }
 
-.kpi small{
-display:block;
-opacity:.6;
-font-size:12px;
+.kpi:hover{
+transform:translateY(-4px);
+box-shadow:0 0 25px rgba(0,255,255,0.2);
 }
+
+.kpi h3{margin:5px 0;font-size:20px}
 
 /* GRID */
 .grid{
@@ -82,10 +78,11 @@ margin-bottom:16px;
 }
 
 .card{
-background:#132a35;
+background:rgba(255,255,255,0.05);
+backdrop-filter: blur(12px);
 padding:16px;
-border-radius:14px;
-box-shadow:0 0 12px rgba(0,0,0,0.25);
+border-radius:16px;
+box-shadow:0 0 20px rgba(0,0,0,0.4);
 }
 
 /* TABLE */
@@ -96,16 +93,20 @@ border-collapse:collapse;
 
 th,td{
 padding:10px;
-text-align:left;
-border-bottom:1px solid #333;
+border-bottom:1px solid rgba(255,255,255,0.1);
 }
 
 /* INSIGHTS */
 .insight{
-background:#1b3a46;
+background:rgba(0,255,255,0.08);
 padding:10px;
-border-radius:8px;
-margin-top:10px;
+border-radius:10px;
+margin-top:8px;
+}
+
+/* TITLE */
+h2{
+margin-bottom:10px;
 }
 
 </style>
@@ -127,22 +128,22 @@ margin-top:10px;
 <!-- MAIN -->
 <div class="main">
 
-<h2>Service Cost Intelligence</h2>
+<h2>🚀 Service Cost Intelligence</h2>
 
 <!-- KPI -->
 <div class="kpi-row">
-<div class="kpi" id="total"><small>Total Cost</small></div>
-<div class="kpi" id="avg"><small>Avg Cost</small></div>
-<div class="kpi" id="max"><small>Max Cost</small></div>
-<div class="kpi" id="min"><small>Min Cost</small></div>
-<div class="kpi" id="perkm"><small>Cost/km</small></div>
+<div class="kpi"><small>Total</small><h3 id="total"></h3></div>
+<div class="kpi"><small>Average</small><h3 id="avg"></h3></div>
+<div class="kpi"><small>Max</small><h3 id="max"></h3></div>
+<div class="kpi"><small>Min</small><h3 id="min"></h3></div>
+<div class="kpi"><small>₹/KM</small><h3 id="perkm"></h3></div>
 </div>
 
 <!-- ROW 1 -->
 <div class="grid">
 
 <div class="card">
-<h3>Year-wise Cost</h3>
+<h3>Year-wise Trend</h3>
 <canvas id="line"></canvas>
 </div>
 
@@ -162,8 +163,8 @@ margin-top:10px;
 </div>
 
 <div class="card">
-<h3>Insights</h3>
-<div id="insights">Click a year in chart</div>
+<h3>Service Details</h3>
+<div id="details">Click a year</div>
 </div>
 
 </div>
@@ -188,13 +189,13 @@ const wb=XLSX.read(data,{type:"array"});
 const sheet=wb.Sheets["Sheet2"];
 const raw=XLSX.utils.sheet_to_json(sheet);
 
-// 🔥 CLEAN PARSE (robust)
-const dataArr = raw.map(r=>{
+// 🔥 SMART PARSE (handles messy columns)
+const parsed = raw.map(r=>{
 
 const keys=Object.keys(r);
 
 const yearKey = keys.find(k=>k.includes("YEAR"));
-const kmKey   = keys.find(k=>k.includes("KMS"));
+const kmKey = keys.find(k=>k.includes("KMS"));
 
 return{
 year:parseInt(r[yearKey]),
@@ -211,35 +212,37 @@ brake:Number(r["BRAKE / CLUTCH FLUID"]||0)
 
 }).filter(d=>d.year && d.cost);
 
-// GROUP UNIQUE YEARS
+// UNIQUE YEARS
 const map={};
-dataArr.forEach(d=>map[d.year]=d);
-const finalData=Object.values(map).sort((a,b)=>a.year-b.year);
+parsed.forEach(d=>map[d.year]=d);
+const dataArr=Object.values(map).sort((a,b)=>a.year-b.year);
 
 // KPI
-const total = finalData.reduce((a,b)=>a+b.cost,0);
-document.getElementById("total").innerHTML+=`₹ ${total}`;
-document.getElementById("avg").innerHTML+=`₹ ${Math.round(total/10)}`;
-document.getElementById("max").innerHTML+=`₹ ${Math.max(...finalData.map(d=>d.cost))}`;
-document.getElementById("min").innerHTML+=`₹ ${Math.min(...finalData.map(d=>d.cost))}`;
-document.getElementById("perkm").innerHTML+=`₹ ${(total/100000).toFixed(2)}`;
+const total=dataArr.reduce((a,b)=>a+b.cost,0);
+totalDiv.innerText="₹ "+total;
+avgDiv.innerText="₹ "+Math.round(total/10);
+maxDiv.innerText="₹ "+Math.max(...dataArr.map(d=>d.cost));
+minDiv.innerText="₹ "+Math.min(...dataArr.map(d=>d.cost));
+perkmDiv.innerText="₹ "+(total/100000).toFixed(2);
 
 // LINE
 charts.line=new Chart(line,{
 type:'line',
 data:{
-labels:finalData.map(d=>"Y"+d.year),
+labels:dataArr.map(d=>"Y"+d.year),
 datasets:[{
-data:finalData.map(d=>d.cost),
-borderColor:"#00c6ff",
+data:dataArr.map(d=>d.cost),
+borderColor:"#00e5ff",
+backgroundColor:"rgba(0,229,255,0.2)",
+fill:true,
 tension:.4
 }]
 },
 options:{
+plugins:{legend:{display:false}},
 onClick:(e,el)=>{
 if(el.length){
-const d=finalData[el[0].index];
-showDetails(d);
+show(dataArr[el[0].index]);
 }
 }
 }
@@ -252,9 +255,9 @@ data:{
 labels:["Parts","Labour","Consumables"],
 datasets:[{
 data:[
-finalData.reduce((a,b)=>a+b.parts,0),
-finalData.reduce((a,b)=>a+b.labour,0),
-finalData.reduce((a,b)=>a+b.cons,0)
+dataArr.reduce((a,b)=>a+b.parts,0),
+dataArr.reduce((a,b)=>a+b.labour,0),
+dataArr.reduce((a,b)=>a+b.cons,0)
 ]
 }]
 }
@@ -267,9 +270,9 @@ data:{
 labels:["Parts","Labour","Consumables"],
 datasets:[{
 data:[
-finalData.reduce((a,b)=>a+b.parts,0),
-finalData.reduce((a,b)=>a+b.labour,0),
-finalData.reduce((a,b)=>a+b.cons,0)
+dataArr.reduce((a,b)=>a+b.parts,0),
+dataArr.reduce((a,b)=>a+b.labour,0),
+dataArr.reduce((a,b)=>a+b.cons,0)
 ]
 }]
 }
@@ -277,18 +280,18 @@ finalData.reduce((a,b)=>a+b.cons,0)
 
 // TABLE
 let html="<tr><th>Year</th><th>KM</th><th>Cost</th></tr>";
-finalData.forEach(d=>{
+dataArr.forEach(d=>{
 html+=`<tr><td>${d.year}</td><td>${d.km}</td><td>₹${d.cost}</td></tr>`;
 });
 table.innerHTML=html;
 
 });
 
-// DETAILS PANEL
-function showDetails(d){
-document.getElementById("insights").innerHTML=`
-<div class="insight">🛢 Oil: ₹${d.oil}</div>
-<div class="insight">🔧 Filter: ₹${d.filter}</div>
+// DETAILS
+function show(d){
+details.innerHTML=`
+<div class="insight">🛢 Engine Oil: ₹${d.oil}</div>
+<div class="insight">🔧 Oil Filter: ₹${d.filter}</div>
 <div class="insight">❄ Coolant: ₹${d.coolant}</div>
 <div class="insight">🛑 Brake Fluid: ₹${d.brake}</div>
 <div class="insight"><b>Total: ₹${d.cost}</b></div>
