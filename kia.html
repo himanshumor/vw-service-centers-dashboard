@@ -5,96 +5,33 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 
 <style>
-body {
-  margin:0;
-  font-family: 'Segoe UI', sans-serif;
-  background:#0b1f2a;
-  color:#fff;
+body { margin:0; font-family:Segoe UI; background:#0b1f2a; color:#fff; }
+.header { display:flex; align-items:center; gap:10px; padding:15px; background:#0f2c3a; }
+.header img { width:50px; border-radius:6px; }
+
+.filters { padding:15px; display:flex; gap:10px; flex-wrap:wrap; }
+select, button {
+  padding:8px 12px; border-radius:20px;
+  border:none; background:#1e4d60; color:#fff;
 }
 
-/* HEADER */
-.header{
-  display:flex;
-  align-items:center;
-  gap:15px;
-  padding:15px 20px;
-  background:#0f2c3a;
-  border-bottom:1px solid #1e4d60;
+.kpi-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:15px; padding:15px;
 }
+.kpi { background:#123848; padding:15px; border-radius:10px; text-align:center; }
 
-.header img{
-  width:55px;
-  border-radius:8px;
+.grid {
+  display:grid; grid-template-columns:2fr 1fr;
+  gap:15px; padding:15px;
 }
+.card { background:#123848; padding:15px; border-radius:10px; }
 
-.title{
-  font-size:22px;
-  font-weight:600;
-}
-
-/* FILTER BAR */
-.filters{
-  display:flex;
-  gap:10px;
-  padding:15px 20px;
-  flex-wrap:wrap;
-}
-
-select{
-  padding:8px 12px;
-  border-radius:20px;
-  border:none;
-  background:#1e4d60;
-  color:white;
-}
-
-/* KPI */
-.kpi-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:15px;
-  padding:20px;
-}
-
-.kpi{
-  background:#123848;
-  padding:15px;
-  border-radius:10px;
-  text-align:center;
-}
-
-/* GRID */
-.grid{
-  display:grid;
-  grid-template-columns:2fr 1fr;
-  gap:20px;
-  padding:20px;
-}
-
-.card{
-  background:#123848;
-  border-radius:10px;
-  padding:15px;
-}
-
-/* TABLE */
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-th,td{
-  padding:8px;
-  border-bottom:1px solid #1e4d60;
-  text-align:left;
-}
-
-/* SERVICE DETAILS */
-.details{
-  padding:20px;
-}
+table { width:100%; border-collapse:collapse; }
+th,td { padding:8px; border-bottom:1px solid #1e4d60; }
 </style>
 </head>
 
@@ -102,7 +39,7 @@ th,td{
 
 <div class="header">
   <img src="IMG_8873.jpeg">
-  <div class="title">Kia Clavis Service Intelligence</div>
+  <h2>Kia Clavis Service Intelligence</h2>
 </div>
 
 <div class="filters">
@@ -110,6 +47,7 @@ th,td{
   <select id="gearbox"></select>
   <select id="variant"></select>
   <select id="year"></select>
+  <button onclick="resetSunburst()">Reset</button>
 </div>
 
 <div class="kpi-grid">
@@ -121,61 +59,69 @@ th,td{
 
 <div class="grid">
   <div class="card"><canvas id="line"></canvas></div>
-  <div class="card"><canvas id="pie"></canvas></div>
+  <div class="card"><div id="sunburst" style="height:350px;"></div></div>
 </div>
 
 <div class="grid">
   <div class="card"><canvas id="bar"></canvas></div>
-  <div class="card details" id="details">Click a year to see service details</div>
+  <div class="card" id="details">Click chart to see details</div>
 </div>
 
-<div class="card" style="margin:20px;">
+<div class="card" style="margin:15px;">
   <table id="table"></table>
 </div>
 
 <script>
 
 let rawData=[], charts={};
+let activeCategory=null, activeComponent=null;
 
-// CLEAN HEADER FUNCTION
+// ✅ SAFE KEY CLEANER
 function cleanKey(k){
-  return k.replace(/\n/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
+  return (k || "")
+    .replace(/\n/g,' ')
+    .replace(/\s+/g,' ')
+    .trim()
+    .toUpperCase();
+}
+
+// ✅ SAFE NUMBER
+function num(v){
+  let n = Number(v);
+  return isNaN(n) ? 0 : n;
 }
 
 // LOAD EXCEL
 fetch("clavis.xlsx")
 .then(res=>res.arrayBuffer())
 .then(data=>{
-  const wb = XLSX.read(data,{type:'array'});
-  const sheet = wb.Sheets[wb.SheetNames[1]];
-  const raw = XLSX.utils.sheet_to_json(sheet);
+  const wb=XLSX.read(data,{type:'array'});
+  const sheet=wb.Sheets[wb.SheetNames[1]]; // Sheet2
+  const raw=XLSX.utils.sheet_to_json(sheet);
 
-  rawData = raw.map(r=>{
+  rawData=raw.map(r=>{
     let obj={};
-    Object.keys(r).forEach(k=>{
-      obj[cleanKey(k)] = r[k];
-    });
+    Object.keys(r).forEach(k=> obj[cleanKey(k)]=r[k]);
 
     return {
-      engine: obj["ENGINE"],
-      gearbox: obj["TRANSMISSION"],
-      variant: obj["VARIANT"],
-      year: parseInt(obj["INTERVAL"]),
-      km: obj["INTERVAL"],
-      cost: Number(obj["GRAND TOTAL"]||0),
+      engine:obj["ENGINE"],
+      gearbox:obj["TRANSMISSION"],
+      variant:obj["VARIANT"],
+      year:parseInt(obj["INTERVAL"]) || 0,
 
-      labour: Number(obj["LABOUR CHARGES"]||0),
-      parts: Number(obj["SPARE PARTS CHARGES"]||0),
-      cons: Number(obj["CONSUMABLE CHARGES"]||0),
+      cost:num(obj["GRAND TOTAL"]),
+      labour:num(obj["LABOUR CHARGES"]),
+      parts:num(obj["SPARE PARTS CHARGES"]),
+      cons:num(obj["CONSUMABLE CHARGES"]),
 
-      oil: obj["ENGINE OIL"],
-      oilFilter: obj["ENGINE OIL FILTER"],
-      airFilter: obj["AIR CLEANER FILTER"],
-      fuelFilter: obj["FUEL FILTER"],
-      coolant: obj["COOLANT (ENGINE)"],
-      brake: obj["BRAKE / CLUTCH FLUID"]
+      oil:num(obj["ENGINE OIL"]),
+      oilFilter:num(obj["ENGINE OIL FILTER"]),
+      air:num(obj["AIR CLEANER FILTER"]),
+      fuel:num(obj["FUEL FILTER"]),
+      coolant:num(obj["COOLANT (ENGINE)"]),
+      brake:num(obj["BRAKE / CLUTCH FLUID"])
     };
-  }).filter(d=>d.year && d.cost);
+  }).filter(d=>d.year>0 && d.cost>0);
 
   initFilters();
   update();
@@ -190,68 +136,74 @@ function initFilters(){
 }
 
 function fill(id,key){
-  let vals=[...new Set(rawData.map(d=>d[key]))];
+  let vals=[...new Set(rawData.map(d=>d[key]).filter(Boolean))];
   let el=document.getElementById(id);
-
   el.innerHTML=`<option value="all">All ${key}</option>`;
   vals.forEach(v=> el.innerHTML+=`<option>${v}</option>`);
-
   el.onchange=update;
 }
 
 // FILTER LOGIC
 function getData(){
-  return rawData.filter(d=>
+
+  let data=rawData.filter(d=>
     (engine.value==="all"||d.engine===engine.value)&&
     (gearbox.value==="all"||d.gearbox===gearbox.value)&&
     (variant.value==="all"||d.variant===variant.value)&&
     (year.value==="all"||d.year==year.value)
   );
+
+  // SAFE SUNBURST FILTER (NON-BREAKING)
+  if(activeCategory){
+    data=data.map(d=>{
+      let cost=d.cost;
+
+      if(activeCategory==="Labour") cost=d.labour;
+      if(activeCategory==="Parts") cost=d.parts;
+      if(activeCategory==="Consumables") cost=d.cons;
+
+      if(activeComponent){
+        const map={
+          "Engine Oil":d.oil,
+          "Oil Filter":d.oilFilter,
+          "Air Filter":d.air,
+          "Fuel Filter":d.fuel,
+          "Coolant":d.coolant,
+          "Brake Fluid":d.brake
+        };
+        cost = map[activeComponent] ?? cost;
+      }
+
+      return {...d, cost:num(cost)};
+    });
+  }
+
+  return data;
 }
 
-// UPDATE DASHBOARD
+// UPDATE
 function update(){
 
-  let data=getData();
-
-  let yearly={};
-  data.forEach(d=>{
-    yearly[d.year]=d;
-  });
-
-  data=Object.values(yearly).sort((a,b)=>a.year-b.year);
+  let data=getData().sort((a,b)=>a.year-b.year);
 
   let labels=data.map(d=>"Y"+d.year);
   let values=data.map(d=>d.cost);
 
-  let total=values.reduce((a,b)=>a+b,0);
-  let avg=Math.round(total/(values.length||1));
-  let max=Math.max(...values);
-  let min=Math.min(...values);
+  let totalVal=values.reduce((a,b)=>a+b,0);
+  let avgVal=Math.round(totalVal/(values.length||1));
+  let maxVal=Math.max(...values,0);
+  let minVal=Math.min(...values,0);
 
-  total.innerHTML="Total ₹"+total;
-  avg.innerHTML="Avg ₹"+avg;
-  max.innerHTML="Max ₹"+max;
-  min.innerHTML="Min ₹"+min;
+  total.innerHTML="Total ₹"+totalVal;
+  avg.innerHTML="Avg ₹"+avgVal;
+  max.innerHTML="Max ₹"+maxVal;
+  min.innerHTML="Min ₹"+minVal;
 
-  draw("line","line",labels,values);
-  draw("bar","bar",labels,values);
+  drawChart("line","line",labels,values);
+  drawChart("bar","bar",labels,values);
 
-  // PIE
-  let labour=data.reduce((a,b)=>a+b.labour,0);
-  let parts=data.reduce((a,b)=>a+b.parts,0);
-  let cons=data.reduce((a,b)=>a+b.cons,0);
+  drawSunburstSafe(data); // ✅ safe wrapper
 
-  if(charts.pie) charts.pie.destroy();
-  charts.pie=new Chart(pie,{
-    type:'pie',
-    data:{
-      labels:["Labour","Parts","Consumables"],
-      datasets:[{data:[labour,parts,cons]}]
-    }
-  });
-
-  // TABLE
   let html="<tr><th>Year</th><th>Cost</th></tr>";
   data.forEach(d=>{
     html+=`<tr onclick="showDetails(${d.year})">
@@ -261,43 +213,70 @@ function update(){
   table.innerHTML=html;
 }
 
-// CHART DRAW
-function draw(id,type,labels,data){
-
+// CHARTS
+function drawChart(id,type,labels,data){
   if(charts[id]) charts[id].destroy();
 
   charts[id]=new Chart(document.getElementById(id),{
     type,
-    data:{labels,datasets:[{label:"Cost",data}]},
-    options:{
-      onClick:(e,el)=>{
-        if(el.length){
-          let index=el[0].index;
-          showDetails(index+1);
-        }
-      }
-    }
+    data:{labels,datasets:[{label:"Cost",data}]}
   });
 }
 
-// SERVICE DETAILS
-function showDetails(year){
+// ✅ SAFE SUNBURST (WILL NOT BREAK DASHBOARD)
+function drawSunburstSafe(data){
+  try{
+    let chart=echarts.init(document.getElementById('sunburst'));
 
+    chart.setOption({
+      series:{
+        type:'sunburst',
+        data:[{
+          name:'Total',
+          children:[
+            {name:'Labour',value:data.reduce((a,b)=>a+b.labour,0)},
+            {name:'Parts',value:data.reduce((a,b)=>a+b.parts,0)},
+            {name:'Consumables',value:data.reduce((a,b)=>a+b.cons,0)}
+          ]
+        }]
+      }
+    });
+
+    chart.off('click'); // prevent duplicate listeners
+    chart.on('click',p=>{
+      activeCategory = (p.name==="Total") ? null : p.name;
+      activeComponent = null;
+      update();
+    });
+
+  }catch(e){
+    console.warn("Sunburst failed, skipping...", e);
+  }
+}
+
+// DETAILS
+function showDetails(year){
   let d=rawData.find(x=>x.year==year);
   if(!d) return;
 
   details.innerHTML=`
-  <h3>Year ${year} Service</h3>
-  <p><b>Cost:</b> ₹${d.cost}</p>
+  <h3>Year ${year}</h3>
+  <p>Cost: ₹${d.cost}</p>
   <ul>
-    <li>Engine Oil: ${d.oil||"-"}</li>
-    <li>Oil Filter: ${d.oilFilter||"-"}</li>
-    <li>Air Filter: ${d.airFilter||"-"}</li>
-    <li>Fuel Filter: ${d.fuelFilter||"-"}</li>
-    <li>Coolant: ${d.coolant||"-"}</li>
-    <li>Brake Fluid: ${d.brake||"-"}</li>
-  </ul>
-  `;
+    <li>Engine Oil: ${d.oil}</li>
+    <li>Oil Filter: ${d.oilFilter}</li>
+    <li>Air Filter: ${d.air}</li>
+    <li>Fuel Filter: ${d.fuel}</li>
+    <li>Coolant: ${d.coolant}</li>
+    <li>Brake Fluid: ${d.brake}</li>
+  </ul>`;
+}
+
+// RESET
+function resetSunburst(){
+  activeCategory=null;
+  activeComponent=null;
+  update();
 }
 
 </script>
