@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Kia Clavis Analytics Pro</title>
+<title>Kia Clavis Pro Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -10,21 +10,41 @@
 
 body{
 margin:0;
-font-family: Arial;
+font-family:Arial;
 background:#f4f6f9;
-color:#222;
 }
 
 /* HEADER */
-.header{
+.topbar{
+display:flex;
+align-items:center;
+gap:15px;
+padding:12px 20px;
 background:white;
-padding:15px 20px;
 border-bottom:1px solid #ddd;
-font-size:18px;
-font-weight:bold;
 }
 
-/* KPI STRIP */
+.topbar img{
+width:40px;
+height:40px;
+border-radius:8px;
+object-fit:cover;
+}
+
+.filters{
+display:flex;
+gap:10px;
+margin-left:auto;
+}
+
+select{
+padding:6px 10px;
+border-radius:6px;
+border:1px solid #ccc;
+background:white;
+}
+
+/* KPI */
 .kpi-row{
 display:grid;
 grid-template-columns:repeat(5,1fr);
@@ -34,13 +54,10 @@ padding:15px;
 
 .kpi{
 background:white;
-padding:15px;
+padding:12px;
 border-radius:8px;
 box-shadow:0 1px 3px rgba(0,0,0,0.1);
 }
-
-.kpi small{color:gray}
-.kpi h2{margin:5px 0}
 
 /* GRID */
 .container{
@@ -52,34 +69,19 @@ padding:15px;
 
 .card{
 background:white;
-border-radius:8px;
 padding:15px;
+border-radius:8px;
 box-shadow:0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* TABLE */
 table{
 width:100%;
 border-collapse:collapse;
 }
 
-th,td{
+td,th{
 padding:8px;
 border-bottom:1px solid #eee;
-}
-
-/* INSIGHTS */
-.insight{
-background:#eef5ff;
-padding:10px;
-margin-top:8px;
-border-radius:6px;
-}
-
-/* MINI TEXT */
-.label{
-font-size:12px;
-color:gray;
 }
 
 </style>
@@ -87,61 +89,50 @@ color:gray;
 
 <body>
 
-<div class="header">
-🚗 Kia Carens Clavis — Service Analytics
+<!-- TOPBAR -->
+<div class="topbar">
+
+<img src="https://raw.githubusercontent.com/himanshumor/vw-service-centers-dashboard/main/IMG_8873.jpeg">
+
+<b>Kia Clavis Analytics</b>
+
+<div class="filters">
+<select id="engine"></select>
+<select id="gearbox"></select>
+<select id="variant"></select>
+<select id="year"></select>
+<select id="km"></select>
+</div>
+
 </div>
 
 <!-- KPI -->
 <div class="kpi-row">
-<div class="kpi"><div class="label">Total Cost</div><h2 id="total"></h2></div>
-<div class="kpi"><div class="label">Avg Cost</div><h2 id="avg"></h2></div>
-<div class="kpi"><div class="label">Max Cost</div><h2 id="max"></h2></div>
-<div class="kpi"><div class="label">Min Cost</div><h2 id="min"></h2></div>
-<div class="kpi"><div class="label">Cost / KM</div><h2 id="perkm"></h2></div>
+<div class="kpi" id="total"></div>
+<div class="kpi" id="avg"></div>
+<div class="kpi" id="max"></div>
+<div class="kpi" id="min"></div>
+<div class="kpi" id="perkm"></div>
 </div>
 
 <div class="container">
 
-<!-- LEFT -->
 <div>
-
-<div class="card">
-<h3>Service Cost Trend</h3>
-<canvas id="line"></canvas>
+<div class="card"><canvas id="line"></canvas></div>
+<div class="card"><table id="table"></table></div>
 </div>
 
-<div class="card">
-<h3>Service Table</h3>
-<table id="table"></table>
-</div>
-
-</div>
-
-<!-- RIGHT -->
 <div>
-
-<div class="card">
-<h3>Cost Breakdown</h3>
-<canvas id="pie"></canvas>
-</div>
-
-<div class="card">
-<h3>Category Cost</h3>
-<canvas id="bar"></canvas>
-</div>
-
-<div class="card">
-<h3>Service Details</h3>
-<div id="details">Click on chart</div>
-</div>
-
+<div class="card"><canvas id="pie"></canvas></div>
+<div class="card"><canvas id="bar"></canvas></div>
+<div class="card" id="details">Click chart</div>
 </div>
 
 </div>
 
 <script>
 
-let charts={};
+let rawData=[], charts={};
 
 fetch("clavis.xlsx")
 .then(r=>r.arrayBuffer())
@@ -151,16 +142,17 @@ const wb=XLSX.read(data,{type:"array"});
 const sheet=wb.Sheets["Sheet2"];
 const raw=XLSX.utils.sheet_to_json(sheet);
 
-// CLEAN DATA
-const parsed=raw.map(r=>{
+// 🔥 CLEAN PARSE
+rawData = raw.map(r=>{
 
 const keys=Object.keys(r);
-const yearKey=keys.find(k=>k.includes("YEAR"));
-const kmKey=keys.find(k=>k.includes("KMS"));
 
 return{
-year:parseInt(r[yearKey]),
-km:parseInt(r[kmKey]),
+engine:r["ENGINE"],
+gearbox:r["TRANSMISSION"],
+variant:r["VARIANT"],
+year:parseInt(r[keys.find(k=>k.includes("YEAR"))]),
+km:r[keys.find(k=>k.includes("KMS"))],
 cost:Number(r["GRAND TOTAL"]||0),
 labour:Number(r["LABOUR CHARGES"]||0),
 parts:Number(r["SPARE PARTS CHARGES"]||0),
@@ -171,64 +163,124 @@ filter:Number(r["ENGINE OIL FILTER"]||0)
 
 }).filter(d=>d.year && d.cost);
 
+initFilters();
+update();
+
+});
+
+/* FILTER INIT */
+function initFilters(){
+fill("engine","engine");
+fill("gearbox","gearbox");
+fill("variant","variant");
+fill("year","year");
+fill("km","km");
+}
+
+/* DYNAMIC FILTER FILL */
+function fill(id,key){
+const el=document.getElementById(id);
+const vals=[...new Set(rawData.map(d=>d[key]).filter(Boolean))];
+
+el.innerHTML=`<option value="all">All</option>`;
+vals.forEach(v=>el.innerHTML+=`<option>${v}</option>`);
+
+el.onchange=()=>{
+syncFilters();
+update();
+};
+}
+
+/* FILTER SYNC (CORE LOGIC) */
+function syncFilters(){
+
+let filtered=getFiltered();
+
+["engine","gearbox","variant","year","km"].forEach(key=>{
+const el=document.getElementById(key);
+const vals=[...new Set(filtered.map(d=>d[key]))];
+
+el.innerHTML=`<option value="all">All</option>`;
+vals.forEach(v=>el.innerHTML+=`<option>${v}</option>`);
+});
+
+}
+
+/* GET FILTERED DATA */
+function getFiltered(){
+return rawData.filter(d=>
+(engine.value==="all"||d.engine===engine.value) &&
+(gearbox.value==="all"||d.gearbox===gearbox.value) &&
+(variant.value==="all"||d.variant===variant.value) &&
+(year.value==="all"||d.year==year.value) &&
+(km.value==="all"||d.km==km.value)
+);
+}
+
+/* UPDATE DASHBOARD */
+function update(){
+
+let data=getFiltered();
+
 // UNIQUE YEARS
 const map={};
-parsed.forEach(d=>map[d.year]=d);
-const dataArr=Object.values(map).sort((a,b)=>a.year-b.year);
+data.forEach(d=>map[d.year]=d);
+data=Object.values(map).sort((a,b)=>a.year-b.year);
+
+if(!data.length) return;
 
 // KPI
-const total=dataArr.reduce((a,b)=>a+b.cost,0);
-total.innerText="₹"+total;
-avg.innerText="₹"+Math.round(total/10);
-max.innerText="₹"+Math.max(...dataArr.map(d=>d.cost));
-min.innerText="₹"+Math.min(...dataArr.map(d=>d.cost));
-perkm.innerText="₹"+(total/100000).toFixed(2);
+const total=data.reduce((a,b)=>a+b.cost,0);
+totalDiv.innerText="Total ₹"+total;
+avgDiv.innerText="Avg ₹"+Math.round(total/data.length);
+maxDiv.innerText="Max ₹"+Math.max(...data.map(d=>d.cost));
+minDiv.innerText="Min ₹"+Math.min(...data.map(d=>d.cost));
+perkmDiv.innerText="₹"+(total/100000).toFixed(2)+"/km";
 
 // LINE
+if(charts.line) charts.line.destroy();
 charts.line=new Chart(line,{
 type:'line',
 data:{
-labels:dataArr.map(d=>"Y"+d.year),
-datasets:[{
-data:dataArr.map(d=>d.cost),
-borderColor:"#2f80ed",
-fill:false
-}]
+labels:data.map(d=>"Y"+d.year),
+datasets:[{data:data.map(d=>d.cost)}]
 },
 options:{
 onClick:(e,el)=>{
 if(el.length){
-show(dataArr[el[0].index]);
+show(data[el[0].index]);
 }
 }
 }
 });
 
 // PIE
+if(charts.pie) charts.pie.destroy();
 charts.pie=new Chart(pie,{
 type:'doughnut',
 data:{
 labels:["Parts","Labour","Consumables"],
 datasets:[{
 data:[
-dataArr.reduce((a,b)=>a+b.parts,0),
-dataArr.reduce((a,b)=>a+b.labour,0),
-dataArr.reduce((a,b)=>a+b.cons,0)
+data.reduce((a,b)=>a+b.parts,0),
+data.reduce((a,b)=>a+b.labour,0),
+data.reduce((a,b)=>a+b.cons,0)
 ]
 }]
 }
 });
 
 // BAR
+if(charts.bar) charts.bar.destroy();
 charts.bar=new Chart(bar,{
 type:'bar',
 data:{
 labels:["Parts","Labour","Consumables"],
 datasets:[{
 data:[
-dataArr.reduce((a,b)=>a+b.parts,0),
-dataArr.reduce((a,b)=>a+b.labour,0),
-dataArr.reduce((a,b)=>a+b.cons,0)
+data.reduce((a,b)=>a+b.parts,0),
+data.reduce((a,b)=>a+b.labour,0),
+data.reduce((a,b)=>a+b.cons,0)
 ]
 }]
 }
@@ -236,19 +288,20 @@ dataArr.reduce((a,b)=>a+b.cons,0)
 
 // TABLE
 let html="<tr><th>Year</th><th>KM</th><th>Cost</th></tr>";
-dataArr.forEach(d=>{
+data.forEach(d=>{
 html+=`<tr><td>${d.year}</td><td>${d.km}</td><td>₹${d.cost}</td></tr>`;
 });
 table.innerHTML=html;
 
-});
+}
 
-// DETAILS PANEL
+/* DETAILS */
 function show(d){
 details.innerHTML=`
-<div class="insight">🛢 Engine Oil: ₹${d.oil}</div>
-<div class="insight">🔧 Oil Filter: ₹${d.filter}</div>
-<div class="insight"><b>Total: ₹${d.cost}</b></div>
+<b>Year ${d.year}</b><br>
+Oil: ₹${d.oil}<br>
+Filter: ₹${d.filter}<br>
+Total: ₹${d.cost}
 `;
 }
 
