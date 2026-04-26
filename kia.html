@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Kia Clavis Enterprise Dashboard</title>
+<title>Kia Clavis Analytics Pro</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -10,79 +10,51 @@
 
 body{
 margin:0;
-font-family: 'Segoe UI', sans-serif;
-background: radial-gradient(circle at top,#0b2a36,#02080c);
-color:#fff;
-display:flex;
-height:100vh;
-overflow:hidden;
+font-family: Arial;
+background:#f4f6f9;
+color:#222;
 }
 
-/* SIDEBAR */
-.sidebar{
-width:260px;
-background:rgba(0,0,0,0.6);
-backdrop-filter: blur(10px);
-padding:20px;
-display:flex;
-flex-direction:column;
-gap:15px;
-border-right:1px solid rgba(255,255,255,0.05);
+/* HEADER */
+.header{
+background:white;
+padding:15px 20px;
+border-bottom:1px solid #ddd;
+font-size:18px;
+font-weight:bold;
 }
 
-.sidebar img{
-width:100%;
-border-radius:12px;
-}
-
-.sidebar h2{margin:10px 0 0;}
-.sidebar p{opacity:.6;margin:0;font-size:13px}
-
-/* MAIN */
-.main{
-flex:1;
-padding:20px;
-overflow-y:auto;
-}
-
-/* KPI */
+/* KPI STRIP */
 .kpi-row{
 display:grid;
 grid-template-columns:repeat(5,1fr);
-gap:15px;
-margin-bottom:20px;
+gap:10px;
+padding:15px;
 }
 
 .kpi{
-background:linear-gradient(135deg,#1c3b47,#132a35);
-padding:16px;
-border-radius:14px;
-text-align:center;
-box-shadow:0 0 20px rgba(0,255,255,0.05);
-transition:0.3s;
+background:white;
+padding:15px;
+border-radius:8px;
+box-shadow:0 1px 3px rgba(0,0,0,0.1);
 }
 
-.kpi:hover{
-transform:translateY(-4px);
-box-shadow:0 0 25px rgba(0,255,255,0.2);
-}
-
-.kpi h3{margin:5px 0;font-size:20px}
+.kpi small{color:gray}
+.kpi h2{margin:5px 0}
 
 /* GRID */
-.grid{
+.container{
 display:grid;
 grid-template-columns:2fr 1fr;
-gap:16px;
-margin-bottom:16px;
+gap:15px;
+padding:15px;
 }
 
 .card{
-background:rgba(255,255,255,0.05);
-backdrop-filter: blur(12px);
-padding:16px;
-border-radius:16px;
-box-shadow:0 0 20px rgba(0,0,0,0.4);
+background:white;
+border-radius:8px;
+padding:15px;
+box-shadow:0 1px 3px rgba(0,0,0,0.1);
 }
 
 /* TABLE */
@@ -92,21 +64,22 @@ border-collapse:collapse;
 }
 
 th,td{
-padding:10px;
-border-bottom:1px solid rgba(255,255,255,0.1);
+padding:8px;
+border-bottom:1px solid #eee;
 }
 
 /* INSIGHTS */
 .insight{
-background:rgba(0,255,255,0.08);
+background:#eef5ff;
 padding:10px;
-border-radius:10px;
 margin-top:8px;
+border-radius:6px;
 }
 
-/* TITLE */
-h2{
-margin-bottom:10px;
+/* MINI TEXT */
+.label{
+font-size:12px;
+color:gray;
 }
 
 </style>
@@ -114,48 +87,43 @@ margin-bottom:10px;
 
 <body>
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-
-<img src="https://imgd.aeplcdn.com/600x337/n/cw/ec/131825/carens-exterior-right-front-three-quarter-2.jpeg">
-
-<h2>Kia Carens Clavis</h2>
-<p>1.5 Diesel • Manual</p>
-<p>7 Seater • 10 Years</p>
-
+<div class="header">
+🚗 Kia Carens Clavis — Service Analytics
 </div>
-
-<!-- MAIN -->
-<div class="main">
-
-<h2>🚀 Service Cost Intelligence</h2>
 
 <!-- KPI -->
 <div class="kpi-row">
-<div class="kpi"><small>Total</small><h3 id="total"></h3></div>
-<div class="kpi"><small>Average</small><h3 id="avg"></h3></div>
-<div class="kpi"><small>Max</small><h3 id="max"></h3></div>
-<div class="kpi"><small>Min</small><h3 id="min"></h3></div>
-<div class="kpi"><small>₹/KM</small><h3 id="perkm"></h3></div>
+<div class="kpi"><div class="label">Total Cost</div><h2 id="total"></h2></div>
+<div class="kpi"><div class="label">Avg Cost</div><h2 id="avg"></h2></div>
+<div class="kpi"><div class="label">Max Cost</div><h2 id="max"></h2></div>
+<div class="kpi"><div class="label">Min Cost</div><h2 id="min"></h2></div>
+<div class="kpi"><div class="label">Cost / KM</div><h2 id="perkm"></h2></div>
 </div>
 
-<!-- ROW 1 -->
-<div class="grid">
+<div class="container">
+
+<!-- LEFT -->
+<div>
 
 <div class="card">
-<h3>Year-wise Trend</h3>
+<h3>Service Cost Trend</h3>
 <canvas id="line"></canvas>
 </div>
+
+<div class="card">
+<h3>Service Table</h3>
+<table id="table"></table>
+</div>
+
+</div>
+
+<!-- RIGHT -->
+<div>
 
 <div class="card">
 <h3>Cost Breakdown</h3>
 <canvas id="pie"></canvas>
 </div>
-
-</div>
-
-<!-- ROW 2 -->
-<div class="grid">
 
 <div class="card">
 <h3>Category Cost</h3>
@@ -164,15 +132,9 @@ margin-bottom:10px;
 
 <div class="card">
 <h3>Service Details</h3>
-<div id="details">Click a year</div>
+<div id="details">Click on chart</div>
 </div>
 
-</div>
-
-<!-- TABLE -->
-<div class="card">
-<h3>Service Table</h3>
-<table id="table"></table>
 </div>
 
 </div>
@@ -189,13 +151,12 @@ const wb=XLSX.read(data,{type:"array"});
 const sheet=wb.Sheets["Sheet2"];
 const raw=XLSX.utils.sheet_to_json(sheet);
 
-// 🔥 SMART PARSE (handles messy columns)
-const parsed = raw.map(r=>{
+// CLEAN DATA
+const parsed=raw.map(r=>{
 
 const keys=Object.keys(r);
-
-const yearKey = keys.find(k=>k.includes("YEAR"));
-const kmKey = keys.find(k=>k.includes("KMS"));
+const yearKey=keys.find(k=>k.includes("YEAR"));
+const kmKey=keys.find(k=>k.includes("KMS"));
 
 return{
 year:parseInt(r[yearKey]),
@@ -205,9 +166,7 @@ labour:Number(r["LABOUR CHARGES"]||0),
 parts:Number(r["SPARE PARTS CHARGES"]||0),
 cons:Number(r["CONSUMABLE CHARGES"]||0),
 oil:Number(r["ENGINE OIL"]||0),
-filter:Number(r["ENGINE OIL FILTER"]||0),
-coolant:Number(r["COOLANT (ENGINE)"]||0),
-brake:Number(r["BRAKE / CLUTCH FLUID"]||0)
+filter:Number(r["ENGINE OIL FILTER"]||0)
 };
 
 }).filter(d=>d.year && d.cost);
@@ -219,11 +178,11 @@ const dataArr=Object.values(map).sort((a,b)=>a.year-b.year);
 
 // KPI
 const total=dataArr.reduce((a,b)=>a+b.cost,0);
-totalDiv.innerText="₹ "+total;
-avgDiv.innerText="₹ "+Math.round(total/10);
-maxDiv.innerText="₹ "+Math.max(...dataArr.map(d=>d.cost));
-minDiv.innerText="₹ "+Math.min(...dataArr.map(d=>d.cost));
-perkmDiv.innerText="₹ "+(total/100000).toFixed(2);
+total.innerText="₹"+total;
+avg.innerText="₹"+Math.round(total/10);
+max.innerText="₹"+Math.max(...dataArr.map(d=>d.cost));
+min.innerText="₹"+Math.min(...dataArr.map(d=>d.cost));
+perkm.innerText="₹"+(total/100000).toFixed(2);
 
 // LINE
 charts.line=new Chart(line,{
@@ -232,14 +191,11 @@ data:{
 labels:dataArr.map(d=>"Y"+d.year),
 datasets:[{
 data:dataArr.map(d=>d.cost),
-borderColor:"#00e5ff",
-backgroundColor:"rgba(0,229,255,0.2)",
-fill:true,
-tension:.4
+borderColor:"#2f80ed",
+fill:false
 }]
 },
 options:{
-plugins:{legend:{display:false}},
 onClick:(e,el)=>{
 if(el.length){
 show(dataArr[el[0].index]);
@@ -287,13 +243,11 @@ table.innerHTML=html;
 
 });
 
-// DETAILS
+// DETAILS PANEL
 function show(d){
 details.innerHTML=`
 <div class="insight">🛢 Engine Oil: ₹${d.oil}</div>
 <div class="insight">🔧 Oil Filter: ₹${d.filter}</div>
-<div class="insight">❄ Coolant: ₹${d.coolant}</div>
-<div class="insight">🛑 Brake Fluid: ₹${d.brake}</div>
 <div class="insight"><b>Total: ₹${d.cost}</b></div>
 `;
 }
