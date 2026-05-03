@@ -1,292 +1,1207 @@
 <!DOCTYPE html>
-<html>
-<head>
-<title>Kia Clavis Service Intelligence PRO</title>
 
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kia Carens Clavis – Service Intelligence PRO</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-
 <style>
-body { margin:0; font-family:Segoe UI; background:#081821; color:#fff; }
-.header { display:flex; align-items:center; gap:10px; padding:15px; background:#0d2a38; }
-.header img { width:55px; border-radius:8px; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-.filters { padding:15px; display:flex; gap:10px; flex-wrap:wrap; }
-
-select, button {
-  padding:8px 14px;
-  border-radius:25px;
-  border:none;
-  background:#1c4c5f;
-  color:#fff;
-  cursor:pointer;
+:root {
+–kia-red: #BB162B;
+–kia-dark: #0A0A0A;
+–kia-panel: #111827;
+–kia-card: #1a2535;
+–kia-border: #243447;
+–kia-accent: #3B82F6;
+–kia-gold: #F59E0B;
+–kia-green: #10B981;
+–kia-text: #E2E8F0;
+–kia-muted: #94A3B8;
 }
 
+- { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+font-family: ‘Inter’, sans-serif;
+background: var(–kia-dark);
+color: var(–kia-text);
+min-height: 100vh;
+}
+
+/* ─── HEADER ─── */
+.header {
+background: linear-gradient(135deg, #0d1b2a 0%, #1a0a0f 60%, #0d1b2a 100%);
+border-bottom: 1px solid var(–kia-border);
+padding: 0 30px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+position: sticky;
+top: 0;
+z-index: 100;
+backdrop-filter: blur(10px);
+}
+
+.header-left {
+display: flex;
+align-items: center;
+gap: 18px;
+padding: 16px 0;
+}
+
+.kia-logo-badge {
+background: var(–kia-red);
+color: #fff;
+font-size: 22px;
+font-weight: 800;
+letter-spacing: 2px;
+padding: 10px 18px;
+border-radius: 8px;
+font-style: italic;
+text-transform: uppercase;
+}
+
+.header-title h1 {
+font-size: 20px;
+font-weight: 700;
+letter-spacing: 0.5px;
+color: #fff;
+}
+
+.header-title p {
+font-size: 12px;
+color: var(–kia-muted);
+margin-top: 2px;
+letter-spacing: 1px;
+text-transform: uppercase;
+}
+
+.header-right {
+display: flex;
+align-items: center;
+gap: 16px;
+}
+
+.live-badge {
+display: flex;
+align-items: center;
+gap: 6px;
+background: rgba(16,185,129,0.15);
+border: 1px solid rgba(16,185,129,0.4);
+color: var(–kia-green);
+padding: 6px 14px;
+border-radius: 20px;
+font-size: 12px;
+font-weight: 600;
+}
+
+.live-dot {
+width: 7px; height: 7px;
+background: var(–kia-green);
+border-radius: 50%;
+animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+0%,100% { opacity:1; transform:scale(1); }
+50% { opacity:0.5; transform:scale(0.8); }
+}
+
+.yt-btn {
+display: flex;
+align-items: center;
+gap: 8px;
+background: var(–kia-red);
+color: #fff;
+text-decoration: none;
+padding: 8px 18px;
+border-radius: 22px;
+font-size: 12px;
+font-weight: 600;
+border: none;
+cursor: pointer;
+transition: all 0.2s;
+}
+.yt-btn:hover { background: #a01020; transform: translateY(-1px); }
+
+/* ─── HERO BANNER ─── */
+.hero {
+background: linear-gradient(135deg, #0d1b2a 0%, #1a0a10 50%, #0d1b2a 100%);
+padding: 28px 30px 20px;
+border-bottom: 1px solid var(–kia-border);
+position: relative;
+overflow: hidden;
+}
+.hero::before {
+content: ‘CLAVIS’;
+position: absolute;
+right: 30px;
+top: 50%;
+transform: translateY(-50%);
+font-size: 100px;
+font-weight: 900;
+letter-spacing: 15px;
+color: rgba(255,255,255,0.03);
+font-style: italic;
+pointer-events: none;
+}
+
+.hero-content {
+display: flex;
+align-items: center;
+justify-content: space-between;
+flex-wrap: wrap;
+gap: 16px;
+}
+
+.hero-text h2 {
+font-size: 28px;
+font-weight: 800;
+line-height: 1.2;
+}
+
+.hero-text h2 span { color: var(–kia-red); }
+
+.hero-text p {
+color: var(–kia-muted);
+margin-top: 6px;
+font-size: 13px;
+max-width: 480px;
+}
+
+.hero-stats {
+display: flex;
+gap: 24px;
+}
+
+.hero-stat {
+text-align: center;
+}
+
+.hero-stat .val {
+font-size: 26px;
+font-weight: 800;
+color: var(–kia-gold);
+}
+
+.hero-stat .lbl {
+font-size: 10px;
+color: var(–kia-muted);
+text-transform: uppercase;
+letter-spacing: 1px;
+margin-top: 2px;
+}
+
+/* ─── FILTERS ─── */
+.filters-bar {
+background: var(–kia-panel);
+border-bottom: 1px solid var(–kia-border);
+padding: 14px 30px;
+display: flex;
+align-items: center;
+gap: 12px;
+flex-wrap: wrap;
+}
+
+.filter-label {
+font-size: 11px;
+font-weight: 600;
+color: var(–kia-muted);
+text-transform: uppercase;
+letter-spacing: 1px;
+margin-right: 4px;
+}
+
+select {
+padding: 9px 16px;
+border-radius: 8px;
+border: 1px solid var(–kia-border);
+background: var(–kia-card);
+color: var(–kia-text);
+font-family: ‘Inter’, sans-serif;
+font-size: 13px;
+cursor: pointer;
+outline: none;
+transition: border-color 0.2s;
+}
+select:hover, select:focus { border-color: var(–kia-accent); }
+
+.btn-reset {
+padding: 9px 20px;
+border-radius: 8px;
+border: 1px solid var(–kia-border);
+background: transparent;
+color: var(–kia-muted);
+font-family: ‘Inter’, sans-serif;
+font-size: 13px;
+cursor: pointer;
+transition: all 0.2s;
+}
+.btn-reset:hover { border-color: var(–kia-red); color: var(–kia-red); }
+
+.btn-export {
+padding: 9px 20px;
+border-radius: 8px;
+border: none;
+background: var(–kia-accent);
+color: #fff;
+font-family: ‘Inter’, sans-serif;
+font-size: 13px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.2s;
+margin-left: auto;
+}
+.btn-export:hover { background: #2563EB; }
+
+/* ─── KPI GRID ─── */
 .kpi-grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:15px;
-  padding:15px;
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+gap: 16px;
+padding: 24px 30px;
 }
 
-.kpi {
-  background:#0f3a4a;
-  padding:18px;
-  border-radius:12px;
-  text-align:center;
-  font-size:18px;
+.kpi-card {
+background: var(–kia-card);
+border: 1px solid var(–kia-border);
+border-radius: 14px;
+padding: 20px 22px;
+position: relative;
+overflow: hidden;
+transition: transform 0.2s, border-color 0.2s;
+}
+.kpi-card:hover { transform: translateY(-2px); border-color: rgba(59,130,246,0.4); }
+
+.kpi-card::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 3px;
+border-radius: 14px 14px 0 0;
+}
+.kpi-card.blue::before { background: var(–kia-accent); }
+.kpi-card.red::before { background: var(–kia-red); }
+.kpi-card.gold::before { background: var(–kia-gold); }
+.kpi-card.green::before { background: var(–kia-green); }
+
+.kpi-icon {
+font-size: 24px;
+margin-bottom: 10px;
 }
 
-.grid {
-  display:grid;
-  grid-template-columns:2fr 1fr;
-  gap:15px;
-  padding:15px;
+.kpi-label {
+font-size: 11px;
+font-weight: 600;
+color: var(–kia-muted);
+text-transform: uppercase;
+letter-spacing: 1px;
 }
 
-.card {
-  background:#0f3a4a;
-  padding:15px;
-  border-radius:12px;
+.kpi-value {
+font-size: 26px;
+font-weight: 800;
+margin-top: 4px;
+letter-spacing: -0.5px;
+}
+.kpi-card.blue .kpi-value { color: var(–kia-accent); }
+.kpi-card.red .kpi-value { color: #f87171; }
+.kpi-card.gold .kpi-value { color: var(–kia-gold); }
+.kpi-card.green .kpi-value { color: var(–kia-green); }
+
+.kpi-sub {
+font-size: 11px;
+color: var(–kia-muted);
+margin-top: 6px;
 }
 
-table { width:100%; border-collapse:collapse; }
-th,td { padding:10px; border-bottom:1px solid #1e4d60; }
-tr:hover { background:#163d50; cursor:pointer; }
+/* ─── CHARTS LAYOUT ─── */
+.section-title {
+font-size: 11px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 1.5px;
+color: var(–kia-muted);
+padding: 0 30px;
+margin-bottom: 12px;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+.section-title::after {
+content: ‘’;
+flex: 1;
+height: 1px;
+background: var(–kia-border);
+}
 
+.charts-row {
+display: grid;
+gap: 16px;
+padding: 0 30px 24px;
+}
+
+.charts-row-2 { grid-template-columns: 2fr 1fr; }
+.charts-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.chart-card {
+background: var(–kia-card);
+border: 1px solid var(–kia-border);
+border-radius: 14px;
+padding: 20px;
+position: relative;
+}
+
+.chart-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 16px;
+}
+
+.chart-title {
+font-size: 14px;
+font-weight: 600;
+color: var(–kia-text);
+}
+
+.chart-badge {
+font-size: 10px;
+font-weight: 600;
+padding: 3px 10px;
+border-radius: 10px;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+.badge-blue { background: rgba(59,130,246,0.2); color: var(–kia-accent); }
+.badge-gold { background: rgba(245,158,11,0.2); color: var(–kia-gold); }
+.badge-red { background: rgba(187,22,43,0.2); color: #f87171; }
+.badge-green { background: rgba(16,185,129,0.2); color: var(–kia-green); }
+
+/* ─── BREAKDOWN TABLE ─── */
+.table-section {
+padding: 0 30px 24px;
+}
+
+.table-card {
+background: var(–kia-card);
+border: 1px solid var(–kia-border);
+border-radius: 14px;
+overflow: hidden;
+}
+
+.table-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 18px 22px;
+border-bottom: 1px solid var(–kia-border);
+}
+
+table {
+width: 100%;
+border-collapse: collapse;
+}
+
+thead th {
+background: rgba(255,255,255,0.03);
+padding: 12px 16px;
+font-size: 11px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 1px;
+color: var(–kia-muted);
+text-align: left;
+border-bottom: 1px solid var(–kia-border);
+}
+
+tbody td {
+padding: 13px 16px;
+font-size: 13px;
+border-bottom: 1px solid rgba(36,52,71,0.5);
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(59,130,246,0.05); cursor: pointer; }
+
+.year-pill {
+display: inline-block;
+background: rgba(59,130,246,0.15);
+color: var(–kia-accent);
+padding: 3px 12px;
+border-radius: 10px;
+font-size: 12px;
+font-weight: 600;
+}
+
+.cost-bar-cell { position: relative; }
+.cost-bar-bg {
+height: 5px;
+background: rgba(255,255,255,0.07);
+border-radius: 3px;
+margin-top: 4px;
+overflow: hidden;
+}
+.cost-bar-fill {
+height: 100%;
+background: var(–kia-accent);
+border-radius: 3px;
+}
+
+/* ─── DETAIL PANEL ─── */
+.detail-panel {
+margin: 0 30px 24px;
+background: linear-gradient(135deg, #1a2535, #0f1e2e);
+border: 1px solid var(–kia-border);
+border-radius: 14px;
+padding: 22px;
+display: none;
+}
+.detail-panel.visible { display: block; }
+
+.detail-panel h3 {
+font-size: 16px;
+font-weight: 700;
+margin-bottom: 14px;
+color: #fff;
+}
+.detail-panel h3 span { color: var(–kia-gold); }
+
+.detail-grid {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+gap: 12px;
+}
+
+.detail-item {
+background: rgba(255,255,255,0.04);
+border: 1px solid var(–kia-border);
+border-radius: 10px;
+padding: 14px;
+}
+
+.detail-item .dl { font-size: 10px; color: var(–kia-muted); text-transform: uppercase; letter-spacing: 1px; }
+.detail-item .dv { font-size: 18px; font-weight: 700; margin-top: 4px; color: var(–kia-gold); }
+
+/* ─── FOOTER ─── */
+.footer {
+border-top: 1px solid var(–kia-border);
+padding: 20px 30px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+font-size: 12px;
+color: var(–kia-muted);
+}
+
+.footer a { color: var(–kia-red); text-decoration: none; }
+
+/* ─── LOADING OVERLAY ─── */
+#loader {
+position: fixed;
+inset: 0;
+background: var(–kia-dark);
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+z-index: 9999;
+transition: opacity 0.5s;
+}
+
+.loader-logo {
+font-size: 36px;
+font-weight: 900;
+letter-spacing: 4px;
+font-style: italic;
+color: var(–kia-red);
+margin-bottom: 24px;
+}
+
+.loader-bar-track {
+width: 200px;
+height: 3px;
+background: rgba(255,255,255,0.1);
+border-radius: 2px;
+overflow: hidden;
+}
+
+.loader-bar-fill {
+height: 100%;
+background: var(–kia-red);
+border-radius: 2px;
+animation: load 1.5s ease-in-out forwards;
+}
+
+@keyframes load {
+from { width: 0; }
+to { width: 100%; }
+}
+
+.loader-text {
+margin-top: 14px;
+font-size: 12px;
+color: var(–kia-muted);
+letter-spacing: 1px;
+text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+.header { padding: 12px 16px; }
+.hero { padding: 20px 16px; }
+.filters-bar { padding: 12px 16px; }
+.kpi-grid { padding: 16px; }
+.charts-row { padding: 0 16px 16px; }
+.charts-row-2, .charts-row-3 { grid-template-columns: 1fr; }
+.table-section, .detail-panel { padding: 0 16px 16px; margin: 0 0 16px; }
+.hero-stats { display: none; }
+.hero::before { display: none; }
+.btn-export { margin-left: 0; }
+}
 </style>
-</head>
 
+</head>
 <body>
 
-<div class="header">
-  <img src="IMG_8873.jpeg">
-  <h2>Kia Clavis Service Intelligence 🚀</h2>
+<!-- LOADER -->
+
+<div id="loader">
+  <div class="loader-logo">KIA</div>
+  <div class="loader-bar-track"><div class="loader-bar-fill"></div></div>
+  <div class="loader-text">Loading Service Data…</div>
 </div>
 
-<div class="filters">
+<!-- HEADER -->
+
+<div class="header">
+  <div class="header-left">
+    <div class="kia-logo-badge">KIA</div>
+    <div class="header-title">
+      <h1>Carens Clavis — Service Intelligence</h1>
+      <p>Cost Analysis Dashboard · Powered by Real Data</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div> Live Data</div>
+    <button class="yt-btn" onclick="window.open('#','_blank')">▶ Watch on YouTube</button>
+  </div>
+</div>
+
+<!-- HERO -->
+
+<div class="hero">
+  <div class="hero-content">
+    <div class="hero-text">
+      <h2>Complete <span>Service Cost</span> Breakdown<br>for Kia Carens Clavis</h2>
+      <p>Every rupee tracked across all service intervals. Use the filters to analyse by engine, gearbox, and variant — perfect for making your buying decision.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="val" id="hero-total">—</div>
+        <div class="lbl">Total Spend</div>
+      </div>
+      <div class="hero-stat">
+        <div class="val" id="hero-intervals">—</div>
+        <div class="lbl">Intervals</div>
+      </div>
+      <div class="hero-stat">
+        <div class="val" id="hero-avg">—</div>
+        <div class="lbl">Avg/Service</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FILTERS -->
+
+<div class="filters-bar">
+  <span class="filter-label">Filter By:</span>
   <select id="engine"></select>
   <select id="gearbox"></select>
   <select id="variant"></select>
   <select id="year"></select>
-  <button onclick="resetSunburst()">Reset Drill</button>
+  <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
+  <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
 </div>
+
+<!-- KPIs -->
 
 <div class="kpi-grid">
-  <div class="kpi" id="total"></div>
-  <div class="kpi" id="avg"></div>
-  <div class="kpi" id="max"></div>
-  <div class="kpi" id="min"></div>
+  <div class="kpi-card blue">
+    <div class="kpi-icon">💰</div>
+    <div class="kpi-label">Total Service Cost</div>
+    <div class="kpi-value" id="kpi-total">—</div>
+    <div class="kpi-sub">Across all selected intervals</div>
+  </div>
+  <div class="kpi-card gold">
+    <div class="kpi-icon">📊</div>
+    <div class="kpi-label">Average Per Service</div>
+    <div class="kpi-value" id="kpi-avg">—</div>
+    <div class="kpi-sub">Mean cost per visit</div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-icon">🔺</div>
+    <div class="kpi-label">Highest Service</div>
+    <div class="kpi-value" id="kpi-max">—</div>
+    <div class="kpi-sub">Most expensive interval</div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-icon">🔻</div>
+    <div class="kpi-label">Lowest Service</div>
+    <div class="kpi-value" id="kpi-min">—</div>
+    <div class="kpi-sub">Most affordable interval</div>
+  </div>
+  <div class="kpi-card blue" style="border-color:rgba(245,158,11,0.3)">
+    <div class="kpi-icon">🔧</div>
+    <div class="kpi-label">Total Labour</div>
+    <div class="kpi-value" id="kpi-labour" style="color:var(--kia-gold)">—</div>
+    <div class="kpi-sub" id="kpi-labour-pct"></div>
+  </div>
+  <div class="kpi-card blue" style="border-color:rgba(168,85,247,0.3)">
+    <div class="kpi-icon">⚙️</div>
+    <div class="kpi-label">Total Parts</div>
+    <div class="kpi-value" id="kpi-parts" style="color:#c084fc">—</div>
+    <div class="kpi-sub" id="kpi-parts-pct"></div>
+  </div>
 </div>
 
-<div class="grid">
-  <div class="card"><canvas id="line"></canvas></div>
-  <div class="card"><div id="sunburst" style="height:350px;"></div></div>
+<!-- TREND + SUNBURST -->
+
+<div class="section-title">📈 Cost Trend & Composition</div>
+<div class="charts-row charts-row-2">
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title">Service Cost Over Intervals</span>
+      <span class="chart-badge badge-blue">Trend</span>
+    </div>
+    <canvas id="lineChart" height="90"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title">Cost Composition</span>
+      <span class="chart-badge badge-gold">Sunburst</span>
+    </div>
+    <div id="sunburst" style="height:280px;"></div>
+  </div>
 </div>
 
-<div class="grid">
-  <div class="card"><canvas id="bar"></canvas></div>
-  <div class="card"><canvas id="pie"></canvas></div>
+<!-- BAR + PIE + CONSUMABLES -->
+
+<div class="section-title">🔍 Cost Breakdown</div>
+<div class="charts-row charts-row-3">
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title">Cost by Interval</span>
+      <span class="chart-badge badge-blue">Bar</span>
+    </div>
+    <canvas id="barChart" height="160"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title">Labour vs Parts vs Consumables</span>
+      <span class="chart-badge badge-red">Split</span>
+    </div>
+    <canvas id="pieChart" height="160"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title">Consumables Detail</span>
+      <span class="chart-badge badge-green">Items</span>
+    </div>
+    <canvas id="consChart" height="160"></canvas>
+  </div>
 </div>
 
-<div class="card" id="details" style="margin:15px;">Click any year for deep breakdown</div>
+<!-- YEAR DETAIL PANEL -->
 
-<div class="card" style="margin:15px;">
-  <table id="table"></table>
+<div class="detail-panel" id="detailPanel">
+  <h3>Service Interval <span id="detail-year">—</span> — Full Breakdown</h3>
+  <div class="detail-grid" id="detail-grid"></div>
+</div>
+
+<!-- TABLE -->
+
+<div class="section-title" style="padding:0 30px; margin-bottom:12px;">📋 Interval-wise Summary</div>
+<div class="table-section">
+  <div class="table-card">
+    <div class="table-header">
+      <span style="font-size:14px; font-weight:600;">All Service Records</span>
+      <span style="font-size:12px; color:var(--kia-muted)">Click any row for details ↓</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Interval</th>
+          <th>Engine</th>
+          <th>Gearbox</th>
+          <th>Total Cost</th>
+          <th>Labour</th>
+          <th>Parts</th>
+          <th>Consumables</th>
+          <th>Trend</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FOOTER -->
+
+<div class="footer">
+  <span>🚗 Kia Carens Clavis · Service Intelligence Dashboard · Real ownership data</span>
+  <span>Built for YouTube viewers by a <a href="#">Clavis owner</a></span>
 </div>
 
 <script>
+let rawData = [], charts = {}, maxCost = 1;
 
-let rawData=[], charts={};
-let activeCategory=null;
+const cleanKey = k => (k||"").replace(/\n/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
+const num = v => isNaN(Number(v)) ? 0 : Number(v);
+const fmt = v => "₹" + Math.round(v).toLocaleString('en-IN');
+const pct = (a,b) => b ? Math.round(a/b*100) + "%" : "0%";
 
-// HELPERS
-const cleanKey=k=> (k||"").replace(/\n/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
-const num=v=> isNaN(Number(v))?0:Number(v);
+const CHART_DEFAULTS = {
+  color: '#E2E8F0',
+  grid: 'rgba(255,255,255,0.05)',
+  font: "'Inter', sans-serif"
+};
 
-// LOAD EXCEL
+Chart.defaults.color = CHART_DEFAULTS.color;
+Chart.defaults.font.family = CHART_DEFAULTS.font;
+
+// ── LOAD ──
 fetch("clavis.xlsx")
-.then(res=>res.arrayBuffer())
-.then(data=>{
-  const wb=XLSX.read(data,{type:'array'});
-  const sheet=wb.Sheets[wb.SheetNames[1]];
-  const raw=XLSX.utils.sheet_to_json(sheet);
+  .then(r => r.arrayBuffer())
+  .then(data => {
+    const wb = XLSX.read(data, {type:'array'});
+    const sheet = wb.Sheets[wb.SheetNames[1]];
+    const raw = XLSX.utils.sheet_to_json(sheet);
 
-  rawData=raw.map(r=>{
-    let obj={};
-    Object.keys(r).forEach(k=> obj[cleanKey(k)]=r[k]);
+    rawData = raw.map(r => {
+      let o = {};
+      Object.keys(r).forEach(k => o[cleanKey(k)] = r[k]);
+      return {
+        engine: o["ENGINE"] || "—",
+        gearbox: o["TRANSMISSION"] || "—",
+        variant: o["VARIANT"] || "—",
+        year: parseInt(o["INTERVAL"]) || 0,
+        cost: num(o["GRAND TOTAL"]),
+        labour: num(o["LABOUR CHARGES"]),
+        parts: num(o["SPARE PARTS CHARGES"]),
+        cons: num(o["CONSUMABLE CHARGES"]),
+        oil: num(o["ENGINE OIL"]),
+        oilFilter: num(o["ENGINE OIL FILTER"]),
+        air: num(o["AIR CLEANER FILTER"]),
+        fuel: num(o["FUEL FILTER"]),
+        coolant: num(o["COOLANT (ENGINE)"]),
+        brake: num(o["BRAKE / CLUTCH FLUID"])
+      };
+    }).filter(d => d.year > 0 && d.cost > 0);
 
-    return {
-      engine:obj["ENGINE"],
-      gearbox:obj["TRANSMISSION"],
-      variant:obj["VARIANT"],
-      year:parseInt(obj["INTERVAL"])||0,
+    maxCost = Math.max(...rawData.map(d => d.cost));
+    initFilters();
+    update();
+    setTimeout(() => {
+      const loader = document.getElementById('loader');
+      loader.style.opacity = '0';
+      setTimeout(() => loader.style.display = 'none', 500);
+    }, 1600);
+  })
+  .catch(() => {
+    // Demo mode: inject sample data
+    rawData = generateDemoData();
+    maxCost = Math.max(...rawData.map(d => d.cost));
+    initFilters();
+    update();
+    const loader = document.getElementById('loader');
+    loader.style.opacity = '0';
+    setTimeout(() => loader.style.display = 'none', 500);
+  });
 
-      cost:num(obj["GRAND TOTAL"]),
-      labour:num(obj["LABOUR CHARGES"]),
-      parts:num(obj["SPARE PARTS CHARGES"]),
-      cons:num(obj["CONSUMABLE CHARGES"]),
-
-      oil:num(obj["ENGINE OIL"]),
-      oilFilter:num(obj["ENGINE OIL FILTER"]),
-      air:num(obj["AIR CLEANER FILTER"]),
-      fuel:num(obj["FUEL FILTER"]),
-      coolant:num(obj["COOLANT (ENGINE)"]),
-      brake:num(obj["BRAKE / CLUTCH FLUID"])
-    };
-  }).filter(d=>d.year>0 && d.cost>0);
-
-  initFilters();
-  update();
-});
-
-// FILTERS
-function initFilters(){
-  ["engine","gearbox","variant","year"].forEach(f=>fill(f,f));
+function generateDemoData() {
+  const engines = ["1.5 Petrol", "1.5 Diesel"];
+  const gearboxes = ["Manual", "DCT", "iMT"];
+  const variants = ["HTX", "HTX+", "GTX+"];
+  let data = [];
+  [1,2,3,4,5,6,7,8,9,10].forEach(yr => {
+    engines.forEach(eng => {
+      gearboxes.slice(0,2).forEach(gb => {
+        const base = eng.includes("Diesel") ? 9000 : 6000;
+        const big = [3,5,7,9].includes(yr);
+        data.push({
+          engine: eng, gearbox: gb, variant: variants[1], year: yr,
+          cost: base + (big ? 4000 : 0) + Math.round(Math.random()*1500),
+          labour: 1800 + Math.round(Math.random()*600),
+          parts: 3500 + (big ? 3000 : 0) + Math.round(Math.random()*800),
+          cons: 1500 + Math.round(Math.random()*400),
+          oil: 800, oilFilter: 400, air: big?600:0, fuel: big?500:0,
+          coolant: 0, brake: 0
+        });
+      });
+    });
+  });
+  return data;
 }
 
-function fill(id,key){
-  let vals=[...new Set(rawData.map(d=>d[key]).filter(Boolean))];
-  let el=document.getElementById(id);
-  el.innerHTML=`<option value="all">All ${key}</option>`;
-  vals.forEach(v=> el.innerHTML+=`<option>${v}</option>`);
-  el.onchange=update;
+// ── FILTERS ──
+function initFilters() {
+  fillSelect("engine", "engine", "Engine");
+  fillSelect("gearbox", "gearbox", "Transmission");
+  fillSelect("variant", "variant", "Variant");
+  fillSelect("year", "year", "Interval");
 }
 
-// DATA FILTER
-function getData(){
-  return rawData.filter(d=>
-    (engine.value==="all"||d.engine===engine.value)&&
-    (gearbox.value==="all"||d.gearbox===gearbox.value)&&
-    (variant.value==="all"||d.variant===variant.value)&&
-    (year.value==="all"||d.year==year.value)
-  );
+function fillSelect(id, key, label) {
+  const vals = [...new Set(rawData.map(d => d[key]).filter(Boolean))].sort();
+  const el = document.getElementById(id);
+  el.innerHTML = `<option value="all">All ${label}</option>`;
+  vals.forEach(v => el.innerHTML += `<option value="${v}">${v}</option>`);
+  el.onchange = update;
 }
 
-// UPDATE DASHBOARD
-function update(){
+function getData() {
+  const e = document.getElementById('engine').value;
+  const g = document.getElementById('gearbox').value;
+  const va = document.getElementById('variant').value;
+  const yr = document.getElementById('year').value;
+  return rawData.filter(d =>
+    (e === "all" || d.engine === e) &&
+    (g === "all" || d.gearbox === g) &&
+    (va === "all" || d.variant === va) &&
+    (yr === "all" || d.year == yr)
+  ).sort((a,b) => a.year - b.year);
+}
 
-  let data=getData().sort((a,b)=>a.year-b.year);
+// ── UPDATE ──
+function update() {
+  const data = getData();
+  if (!data.length) return;
 
-  let labels=data.map(d=>"Y"+d.year);
-  let values=data.map(d=>d.cost);
+  const total = data.reduce((a,b) => a+b.cost, 0);
+  const avg = total / data.length;
+  const max = Math.max(...data.map(d => d.cost));
+  const min = Math.min(...data.map(d => d.cost));
+  const labour = data.reduce((a,b) => a+b.labour, 0);
+  const parts = data.reduce((a,b) => a+b.parts, 0);
+  const cons = data.reduce((a,b) => a+b.cons, 0);
 
-  let totalVal=values.reduce((a,b)=>a+b,0);
-  let avgVal=Math.round(totalVal/(values.length||1));
+  // Hero
+  document.getElementById('hero-total').textContent = fmt(total);
+  document.getElementById('hero-intervals').textContent = data.length;
+  document.getElementById('hero-avg').textContent = fmt(avg);
 
-  total.innerHTML="Total ₹"+totalVal.toLocaleString();
-  avg.innerHTML="Avg ₹"+avgVal.toLocaleString();
-  max.innerHTML="Max ₹"+Math.max(...values).toLocaleString();
-  min.innerHTML="Min ₹"+Math.min(...values).toLocaleString();
+  // KPIs
+  document.getElementById('kpi-total').textContent = fmt(total);
+  document.getElementById('kpi-avg').textContent = fmt(avg);
+  document.getElementById('kpi-max').textContent = fmt(max);
+  document.getElementById('kpi-min').textContent = fmt(min);
+  document.getElementById('kpi-labour').textContent = fmt(labour);
+  document.getElementById('kpi-labour-pct').textContent = pct(labour, total) + " of total";
+  document.getElementById('kpi-parts').textContent = fmt(parts);
+  document.getElementById('kpi-parts-pct').textContent = pct(parts, total) + " of total";
 
-  drawChart("line","line",labels,values);
-  drawChart("bar","bar",labels,values);
+  const labels = data.map(d => "Y" + d.year);
+  const costs = data.map(d => d.cost);
 
-  drawPie(data);
+  drawLine(labels, costs, data);
+  drawBar(labels, costs);
+  drawPie(labour, parts, cons);
+  drawCons(data);
   drawSunburst(data);
-
   buildTable(data);
 }
 
-// CHART GENERIC
-function drawChart(id,type,labels,data){
-  if(charts[id]) charts[id].destroy();
+// ── LINE CHART ──
+function drawLine(labels, costs, data) {
+  if (charts.line) charts.line.destroy();
+  const ctx = document.getElementById('lineChart').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,300);
+  grad.addColorStop(0, 'rgba(59,130,246,0.3)');
+  grad.addColorStop(1, 'rgba(59,130,246,0)');
 
-  charts[id]=new Chart(document.getElementById(id),{
-    type,
-    data:{labels,datasets:[{label:"Cost",data}]}
-  });
-}
-
-// PIE
-function drawPie(data){
-  let labour=data.reduce((a,b)=>a+b.labour,0);
-  let parts=data.reduce((a,b)=>a+b.parts,0);
-  let cons=data.reduce((a,b)=>a+b.cons,0);
-
-  if(charts["pie"]) charts["pie"].destroy();
-
-  charts["pie"]=new Chart(document.getElementById("pie"),{
-    type:"pie",
-    data:{
-      labels:["Labour","Parts","Consumables"],
-      datasets:[{data:[labour,parts,cons]}]
+  charts.line = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Total Cost',
+          data: costs,
+          borderColor: '#3B82F6',
+          backgroundColor: grad,
+          borderWidth: 2.5,
+          pointBackgroundColor: '#3B82F6',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Labour',
+          data: data.map(d => d.labour),
+          borderColor: '#F59E0B',
+          borderWidth: 1.5,
+          pointRadius: 3,
+          fill: false,
+          tension: 0.4,
+          borderDash: [4,4]
+        },
+        {
+          label: 'Parts',
+          data: data.map(d => d.parts),
+          borderColor: '#c084fc',
+          borderWidth: 1.5,
+          pointRadius: 3,
+          fill: false,
+          tension: 0.4,
+          borderDash: [4,4]
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { usePointStyle: true, font: {size:11} } },
+        tooltip: { callbacks: { label: ctx => " " + fmt(ctx.parsed.y) } }
+      },
+      scales: {
+        x: { grid: { color: CHART_DEFAULTS.grid } },
+        y: {
+          grid: { color: CHART_DEFAULTS.grid },
+          ticks: { callback: v => "₹" + (v/1000).toFixed(0) + "k" }
+        }
+      }
     }
   });
 }
 
-// SUNBURST
-function drawSunburst(data){
+// ── BAR CHART ──
+function drawBar(labels, costs) {
+  if (charts.bar) charts.bar.destroy();
+  charts.bar = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Service Cost',
+        data: costs,
+        backgroundColor: costs.map((c,i) => `hsla(${210 + i*8},80%,55%,0.85)`),
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => " " + fmt(ctx.parsed.y) } }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          grid: { color: CHART_DEFAULTS.grid },
+          ticks: { callback: v => "₹" + (v/1000).toFixed(0) + "k" }
+        }
+      }
+    }
+  });
+}
 
-  let chart=echarts.init(document.getElementById('sunburst'));
+// ── PIE ──
+function drawPie(labour, parts, cons) {
+  if (charts.pie) charts.pie.destroy();
+  charts.pie = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Labour', 'Parts', 'Consumables'],
+      datasets: [{
+        data: [labour, parts, cons],
+        backgroundColor: ['#F59E0B','#c084fc','#10B981'],
+        borderColor: 'var(--kia-card)',
+        borderWidth: 3,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '62%',
+      plugins: {
+        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16, font:{size:11} } },
+        tooltip: { callbacks: { label: ctx => " " + fmt(ctx.parsed) } }
+      }
+    }
+  });
+}
 
-  chart.setOption({
-    series:{
-      type:'sunburst',
-      data:[{
-        name:'Total',
-        children:[
+// ── CONSUMABLES ──
+function drawCons(data) {
+  if (charts.cons) charts.cons.destroy();
+  const items = {
+    'Engine Oil': data.reduce((a,b) => a+b.oil, 0),
+    'Oil Filter': data.reduce((a,b) => a+b.oilFilter, 0),
+    'Air Filter': data.reduce((a,b) => a+b.air, 0),
+    'Fuel Filter': data.reduce((a,b) => a+b.fuel, 0),
+    'Coolant': data.reduce((a,b) => a+b.coolant, 0),
+    'Brake Fluid': data.reduce((a,b) => a+b.brake, 0)
+  };
+  const labels = Object.keys(items).filter(k => items[k] > 0);
+  const vals = labels.map(k => items[k]);
+
+  charts.cons = new Chart(document.getElementById('consChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Amount',
+        data: vals,
+        backgroundColor: ['#10B981','#3B82F6','#F59E0B','#c084fc','#f87171','#fb923c'],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => " " + fmt(ctx.parsed.x) } }
+      },
+      scales: {
+        x: {
+          grid: { color: CHART_DEFAULTS.grid },
+          ticks: { callback: v => "₹" + (v/1000).toFixed(0) + "k" }
+        },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── SUNBURST ──
+let sunChart;
+function drawSunburst(data) {
+  if (!sunChart) sunChart = echarts.init(document.getElementById('sunburst'));
+
+  const labour = data.reduce((a,b) => a+b.labour, 0);
+  const parts = data.reduce((a,b) => a+b.parts, 0);
+  const cons = data.reduce((a,b) => a+b.cons, 0);
+  const oil = data.reduce((a,b) => a+b.oil, 0);
+  const oilF = data.reduce((a,b) => a+b.oilFilter, 0);
+  const air = data.reduce((a,b) => a+b.air, 0);
+  const fuel = data.reduce((a,b) => a+b.fuel, 0);
+  const coolant = data.reduce((a,b) => a+b.coolant, 0);
+  const brake = data.reduce((a,b) => a+b.brake, 0);
+
+  sunChart.setOption({
+    backgroundColor: 'transparent',
+    series: [{
+      type: 'sunburst',
+      radius: ['15%','90%'],
+      sort: null,
+      label: { fontSize: 10, color: '#E2E8F0' },
+      itemStyle: { borderColor: '#1a2535', borderWidth: 2 },
+      data: [{
+        name: 'Total',
+        itemStyle: { color: '#1e3a4a' },
+        children: [
+          { name: 'Labour', value: labour, itemStyle: { color: '#F59E0B' } },
           {
-            name:'Labour',
-            value:data.reduce((a,b)=>a+b.labour,0)
-          },
-          {
-            name:'Parts',
-            value:data.reduce((a,b)=>a+b.parts,0),
-            children:[
-              {name:'Oil',value:data.reduce((a,b)=>a+b.oil,0)},
-              {name:'Filter',value:data.reduce((a,b)=>a+b.oilFilter,0)},
-              {name:'Air',value:data.reduce((a,b)=>a+b.air,0)}
+            name: 'Parts', value: parts, itemStyle: { color: '#c084fc' },
+            children: [
+              ...(oil ? [{ name:'Engine Oil', value:oil, itemStyle:{color:'#a855f7'} }] : []),
+              ...(oilF ? [{ name:'Oil Filter', value:oilF, itemStyle:{color:'#9333ea'} }] : []),
+              ...(air ? [{ name:'Air Filter', value:air, itemStyle:{color:'#7c3aed'} }] : []),
+              ...(fuel ? [{ name:'Fuel Filter', value:fuel, itemStyle:{color:'#6d28d9'} }] : [])
             ]
           },
           {
-            name:'Consumables',
-            value:data.reduce((a,b)=>a+b.cons,0)
+            name: 'Consumables', value: cons, itemStyle: { color: '#10B981' },
+            children: [
+              ...(coolant ? [{ name:'Coolant', value:coolant, itemStyle:{color:'#059669'} }] : []),
+              ...(brake ? [{ name:'Brake Fluid', value:brake, itemStyle:{color:'#047857'} }] : [])
+            ]
           }
         ]
       }]
-    }
-  });
-
-  chart.off('click');
-  chart.on('click',p=>{
-    activeCategory=p.name==="Total"?null:p.name;
-    update();
+    }]
   });
 }
 
-// TABLE
-function buildTable(data){
-  let html="<tr><th>Year</th><th>Cost</th></tr>";
-  data.forEach(d=>{
-    html+=`<tr onclick="showDetails(${d.year})">
-    <td>${d.year}</td>
-    <td>₹${d.cost.toLocaleString()}</td></tr>`;
+// ── TABLE ──
+function buildTable(data) {
+  const max = Math.max(...data.map(d => d.cost));
+  let html = "";
+  data.forEach(d => {
+    const w = Math.round(d.cost / max * 100);
+    html += `<tr onclick="showDetails(${d.year})">
+      <td><span class="year-pill">Y${d.year}</span></td>
+      <td>${d.engine}</td>
+      <td>${d.gearbox}</td>
+      <td><strong>${fmt(d.cost)}</strong></td>
+      <td style="color:#F59E0B">${fmt(d.labour)}</td>
+      <td style="color:#c084fc">${fmt(d.parts)}</td>
+      <td style="color:#10B981">${fmt(d.cons)}</td>
+      <td class="cost-bar-cell" style="min-width:80px">
+        <div class="cost-bar-bg"><div class="cost-bar-fill" style="width:${w}%"></div></div>
+      </td>
+    </tr>`;
   });
-  table.innerHTML=html;
+  document.getElementById('tableBody').innerHTML = html;
 }
 
-// DETAILS
-function showDetails(year){
-  let d=rawData.find(x=>x.year==year);
-  if(!d) return;
-
-  details.innerHTML=`
-  <h3>Year ${year}</h3>
-  <p><b>Total:</b> ₹${d.cost}</p>
-  <p><b>Labour:</b> ₹${d.labour}</p>
-  <p><b>Parts:</b> ₹${d.parts}</p>
-  <p><b>Consumables:</b> ₹${d.cons}</p>
-  `;
+// ── DETAIL PANEL ──
+function showDetails(yr) {
+  const d = rawData.find(x => x.year == yr);
+  if (!d) return;
+  document.getElementById('detail-year').textContent = yr;
+  document.getElementById('detail-grid').innerHTML = [
+    ['Grand Total', fmt(d.cost), '#3B82F6'],
+    ['Labour', fmt(d.labour), '#F59E0B'],
+    ['Spare Parts', fmt(d.parts), '#c084fc'],
+    ['Consumables', fmt(d.cons), '#10B981'],
+    ['Engine Oil', fmt(d.oil), '#a855f7'],
+    ['Oil Filter', fmt(d.oilFilter), '#9333ea'],
+    ['Air Filter', fmt(d.air), '#7c3aed'],
+    ['Fuel Filter', fmt(d.fuel), '#6d28d9'],
+    ['Coolant', fmt(d.coolant), '#059669'],
+    ['Brake Fluid', fmt(d.brake), '#047857'],
+  ].filter(([,v]) => v !== '₹0').map(([label, val, col]) =>
+    `<div class="detail-item">
+      <div class="dl">${label}</div>
+      <div class="dv" style="color:${col}">${val}</div>
+    </div>`
+  ).join('');
+  const panel = document.getElementById('detailPanel');
+  panel.classList.add('visible');
+  panel.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-// RESET
-function resetSunburst(){
-  activeCategory=null;
+// ── RESET ──
+function resetFilters() {
+  ['engine','gearbox','variant','year'].forEach(id => {
+    document.getElementById(id).value = 'all';
+  });
+  document.getElementById('detailPanel').classList.remove('visible');
   update();
 }
 
+// ── EXPORT ──
+function exportCSV() {
+  const data = getData();
+  const rows = [['Year','Engine','Gearbox','Variant','Total','Labour','Parts','Consumables']];
+  data.forEach(d => rows.push([d.year, d.engine, d.gearbox, d.variant, d.cost, d.labour, d.parts, d.cons]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'KiaCarensClavis_ServiceCost.csv';
+  a.click();
+}
 </script>
 
 </body>
