@@ -1,37 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Kia Clavis Analytics</title>
+<title>Kia Clavis Service Intelligence PRO</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 
 <style>
-body { margin:0; font-family:Segoe UI; background:#0b1f2a; color:#fff; }
-.header { display:flex; align-items:center; gap:10px; padding:15px; background:#0f2c3a; }
-.header img { width:50px; border-radius:6px; }
+body { margin:0; font-family:Segoe UI; background:#081821; color:#fff; }
+.header { display:flex; align-items:center; gap:10px; padding:15px; background:#0d2a38; }
+.header img { width:55px; border-radius:8px; }
 
 .filters { padding:15px; display:flex; gap:10px; flex-wrap:wrap; }
+
 select, button {
-  padding:8px 12px; border-radius:20px;
-  border:none; background:#1e4d60; color:#fff;
+  padding:8px 14px;
+  border-radius:25px;
+  border:none;
+  background:#1c4c5f;
+  color:#fff;
+  cursor:pointer;
 }
 
 .kpi-grid {
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:15px; padding:15px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:15px;
+  padding:15px;
 }
-.kpi { background:#123848; padding:15px; border-radius:10px; text-align:center; }
+
+.kpi {
+  background:#0f3a4a;
+  padding:18px;
+  border-radius:12px;
+  text-align:center;
+  font-size:18px;
+}
 
 .grid {
-  display:grid; grid-template-columns:2fr 1fr;
-  gap:15px; padding:15px;
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:15px;
+  padding:15px;
 }
-.card { background:#123848; padding:15px; border-radius:10px; }
+
+.card {
+  background:#0f3a4a;
+  padding:15px;
+  border-radius:12px;
+}
 
 table { width:100%; border-collapse:collapse; }
-th,td { padding:8px; border-bottom:1px solid #1e4d60; }
+th,td { padding:10px; border-bottom:1px solid #1e4d60; }
+tr:hover { background:#163d50; cursor:pointer; }
+
 </style>
 </head>
 
@@ -39,7 +62,7 @@ th,td { padding:8px; border-bottom:1px solid #1e4d60; }
 
 <div class="header">
   <img src="IMG_8873.jpeg">
-  <h2>Kia Clavis Service Intelligence</h2>
+  <h2>Kia Clavis Service Intelligence 🚀</h2>
 </div>
 
 <div class="filters">
@@ -47,7 +70,7 @@ th,td { padding:8px; border-bottom:1px solid #1e4d60; }
   <select id="gearbox"></select>
   <select id="variant"></select>
   <select id="year"></select>
-  <button onclick="resetSunburst()">Reset</button>
+  <button onclick="resetSunburst()">Reset Drill</button>
 </div>
 
 <div class="kpi-grid">
@@ -64,8 +87,10 @@ th,td { padding:8px; border-bottom:1px solid #1e4d60; }
 
 <div class="grid">
   <div class="card"><canvas id="bar"></canvas></div>
-  <div class="card" id="details">Click chart to see details</div>
+  <div class="card"><canvas id="pie"></canvas></div>
 </div>
+
+<div class="card" id="details" style="margin:15px;">Click any year for deep breakdown</div>
 
 <div class="card" style="margin:15px;">
   <table id="table"></table>
@@ -74,29 +99,18 @@ th,td { padding:8px; border-bottom:1px solid #1e4d60; }
 <script>
 
 let rawData=[], charts={};
-let activeCategory=null, activeComponent=null;
+let activeCategory=null;
 
-// ✅ SAFE KEY CLEANER
-function cleanKey(k){
-  return (k || "")
-    .replace(/\n/g,' ')
-    .replace(/\s+/g,' ')
-    .trim()
-    .toUpperCase();
-}
-
-// ✅ SAFE NUMBER
-function num(v){
-  let n = Number(v);
-  return isNaN(n) ? 0 : n;
-}
+// HELPERS
+const cleanKey=k=> (k||"").replace(/\n/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
+const num=v=> isNaN(Number(v))?0:Number(v);
 
 // LOAD EXCEL
 fetch("clavis.xlsx")
 .then(res=>res.arrayBuffer())
 .then(data=>{
   const wb=XLSX.read(data,{type:'array'});
-  const sheet=wb.Sheets[wb.SheetNames[1]]; // Sheet2
+  const sheet=wb.Sheets[wb.SheetNames[1]];
   const raw=XLSX.utils.sheet_to_json(sheet);
 
   rawData=raw.map(r=>{
@@ -107,7 +121,7 @@ fetch("clavis.xlsx")
       engine:obj["ENGINE"],
       gearbox:obj["TRANSMISSION"],
       variant:obj["VARIANT"],
-      year:parseInt(obj["INTERVAL"]) || 0,
+      year:parseInt(obj["INTERVAL"])||0,
 
       cost:num(obj["GRAND TOTAL"]),
       labour:num(obj["LABOUR CHARGES"]),
@@ -129,10 +143,7 @@ fetch("clavis.xlsx")
 
 // FILTERS
 function initFilters(){
-  fill("engine","engine");
-  fill("gearbox","gearbox");
-  fill("variant","variant");
-  fill("year","year");
+  ["engine","gearbox","variant","year"].forEach(f=>fill(f,f));
 }
 
 function fill(id,key){
@@ -143,45 +154,17 @@ function fill(id,key){
   el.onchange=update;
 }
 
-// FILTER LOGIC
+// DATA FILTER
 function getData(){
-
-  let data=rawData.filter(d=>
+  return rawData.filter(d=>
     (engine.value==="all"||d.engine===engine.value)&&
     (gearbox.value==="all"||d.gearbox===gearbox.value)&&
     (variant.value==="all"||d.variant===variant.value)&&
     (year.value==="all"||d.year==year.value)
   );
-
-  // SAFE SUNBURST FILTER (NON-BREAKING)
-  if(activeCategory){
-    data=data.map(d=>{
-      let cost=d.cost;
-
-      if(activeCategory==="Labour") cost=d.labour;
-      if(activeCategory==="Parts") cost=d.parts;
-      if(activeCategory==="Consumables") cost=d.cons;
-
-      if(activeComponent){
-        const map={
-          "Engine Oil":d.oil,
-          "Oil Filter":d.oilFilter,
-          "Air Filter":d.air,
-          "Fuel Filter":d.fuel,
-          "Coolant":d.coolant,
-          "Brake Fluid":d.brake
-        };
-        cost = map[activeComponent] ?? cost;
-      }
-
-      return {...d, cost:num(cost)};
-    });
-  }
-
-  return data;
 }
 
-// UPDATE
+// UPDATE DASHBOARD
 function update(){
 
   let data=getData().sort((a,b)=>a.year-b.year);
@@ -191,29 +174,22 @@ function update(){
 
   let totalVal=values.reduce((a,b)=>a+b,0);
   let avgVal=Math.round(totalVal/(values.length||1));
-  let maxVal=Math.max(...values,0);
-  let minVal=Math.min(...values,0);
 
-  total.innerHTML="Total ₹"+totalVal;
-  avg.innerHTML="Avg ₹"+avgVal;
-  max.innerHTML="Max ₹"+maxVal;
-  min.innerHTML="Min ₹"+minVal;
+  total.innerHTML="Total ₹"+totalVal.toLocaleString();
+  avg.innerHTML="Avg ₹"+avgVal.toLocaleString();
+  max.innerHTML="Max ₹"+Math.max(...values).toLocaleString();
+  min.innerHTML="Min ₹"+Math.min(...values).toLocaleString();
 
   drawChart("line","line",labels,values);
   drawChart("bar","bar",labels,values);
 
-  drawSunburstSafe(data); // ✅ safe wrapper
+  drawPie(data);
+  drawSunburst(data);
 
-  let html="<tr><th>Year</th><th>Cost</th></tr>";
-  data.forEach(d=>{
-    html+=`<tr onclick="showDetails(${d.year})">
-    <td>${d.year}</td>
-    <td>₹${d.cost}</td></tr>`;
-  });
-  table.innerHTML=html;
+  buildTable(data);
 }
 
-// CHARTS
+// CHART GENERIC
 function drawChart(id,type,labels,data){
   if(charts[id]) charts[id].destroy();
 
@@ -223,35 +199,72 @@ function drawChart(id,type,labels,data){
   });
 }
 
-// ✅ SAFE SUNBURST (WILL NOT BREAK DASHBOARD)
-function drawSunburstSafe(data){
-  try{
-    let chart=echarts.init(document.getElementById('sunburst'));
+// PIE
+function drawPie(data){
+  let labour=data.reduce((a,b)=>a+b.labour,0);
+  let parts=data.reduce((a,b)=>a+b.parts,0);
+  let cons=data.reduce((a,b)=>a+b.cons,0);
 
-    chart.setOption({
-      series:{
-        type:'sunburst',
-        data:[{
-          name:'Total',
-          children:[
-            {name:'Labour',value:data.reduce((a,b)=>a+b.labour,0)},
-            {name:'Parts',value:data.reduce((a,b)=>a+b.parts,0)},
-            {name:'Consumables',value:data.reduce((a,b)=>a+b.cons,0)}
-          ]
-        }]
-      }
-    });
+  if(charts["pie"]) charts["pie"].destroy();
 
-    chart.off('click'); // prevent duplicate listeners
-    chart.on('click',p=>{
-      activeCategory = (p.name==="Total") ? null : p.name;
-      activeComponent = null;
-      update();
-    });
+  charts["pie"]=new Chart(document.getElementById("pie"),{
+    type:"pie",
+    data:{
+      labels:["Labour","Parts","Consumables"],
+      datasets:[{data:[labour,parts,cons]}]
+    }
+  });
+}
 
-  }catch(e){
-    console.warn("Sunburst failed, skipping...", e);
-  }
+// SUNBURST
+function drawSunburst(data){
+
+  let chart=echarts.init(document.getElementById('sunburst'));
+
+  chart.setOption({
+    series:{
+      type:'sunburst',
+      data:[{
+        name:'Total',
+        children:[
+          {
+            name:'Labour',
+            value:data.reduce((a,b)=>a+b.labour,0)
+          },
+          {
+            name:'Parts',
+            value:data.reduce((a,b)=>a+b.parts,0),
+            children:[
+              {name:'Oil',value:data.reduce((a,b)=>a+b.oil,0)},
+              {name:'Filter',value:data.reduce((a,b)=>a+b.oilFilter,0)},
+              {name:'Air',value:data.reduce((a,b)=>a+b.air,0)}
+            ]
+          },
+          {
+            name:'Consumables',
+            value:data.reduce((a,b)=>a+b.cons,0)
+          }
+        ]
+      }]
+    }
+  });
+
+  chart.off('click');
+  chart.on('click',p=>{
+    activeCategory=p.name==="Total"?null:p.name;
+    update();
+  });
+}
+
+// TABLE
+function buildTable(data){
+  let html="<tr><th>Year</th><th>Cost</th></tr>";
+  data.forEach(d=>{
+    html+=`<tr onclick="showDetails(${d.year})">
+    <td>${d.year}</td>
+    <td>₹${d.cost.toLocaleString()}</td></tr>`;
+  });
+  table.innerHTML=html;
 }
 
 // DETAILS
@@ -261,21 +274,16 @@ function showDetails(year){
 
   details.innerHTML=`
   <h3>Year ${year}</h3>
-  <p>Cost: ₹${d.cost}</p>
-  <ul>
-    <li>Engine Oil: ${d.oil}</li>
-    <li>Oil Filter: ${d.oilFilter}</li>
-    <li>Air Filter: ${d.air}</li>
-    <li>Fuel Filter: ${d.fuel}</li>
-    <li>Coolant: ${d.coolant}</li>
-    <li>Brake Fluid: ${d.brake}</li>
-  </ul>`;
+  <p><b>Total:</b> ₹${d.cost}</p>
+  <p><b>Labour:</b> ₹${d.labour}</p>
+  <p><b>Parts:</b> ₹${d.parts}</p>
+  <p><b>Consumables:</b> ₹${d.cons}</p>
+  `;
 }
 
 // RESET
 function resetSunburst(){
   activeCategory=null;
-  activeComponent=null;
   update();
 }
 
